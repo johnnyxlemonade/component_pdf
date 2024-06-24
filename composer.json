@@ -1,0 +1,30 @@
+{
+  "name": "lemonade/component_pdf",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Honza Mudrak",
+      "email": "honza@core1.agency",
+      "homepage": "https://core1.agency"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Lemonade\\Pdf\\": "src/"
+    },
+    "files": [
+      "src/helper.php"
+    ]
+  },
+  "require": {
+    "php": ">=8.1",
+    "nette/utils": "^3.2",
+    "ext-bcmath": "*",
+    "ext-iconv": "*",
+    "ext-mbstring": "*",
+    "ext-zlib": "*",
+    "ext-gd": "*"
+  }
+}
+
+
