@@ -30,9 +30,9 @@ final class Table
 
     /**
      * @param string|null $index
-     * @return string
+     * @return string|int|float
      */
-    public function getConfig(string $index = null): string
+    public function getConfig(string $index = null): string|int|float
     {
 
         if((string) $index !== "") {

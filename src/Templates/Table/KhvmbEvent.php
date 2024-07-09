@@ -9,8 +9,8 @@ use Lemonade\Pdf\Templates\TableInterface;
 use Nette\Utils\Strings;
 
 /**
- * KhvmbEvent
- * \Lemonade\Pdf\Custom\KhvmbEvent
+ * @KhvmbEvent
+ * @\Lemonade\Pdf\Templates\Table\KhvmbEvent
  */
 class KhvmbEvent extends OutputTable
 {

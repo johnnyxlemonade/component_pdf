@@ -432,6 +432,23 @@ final class PDFRenderer
     }
 
     /**
+     * @param string $background
+     * @return void
+     */
+    public function addBackground(string $background): void
+    {
+
+        try {
+
+            $this->pdf->placeImage(imgPath: $background, x: 0, y: 0, containerWidth: $this->width(), containerHeight: $this->height(), alignment: "FULLIMAGE");
+
+        } catch (Exception $e) {
+
+        }
+
+    }
+
+    /**
      * @param array $data
      * @return void
      */
