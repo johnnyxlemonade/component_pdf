@@ -21,7 +21,7 @@ final class PDFRenderer
      * @var array
      */
     protected array $cache = [
-        "family" => null,
+        "family" => "sans",
         "size" => 15,
         "color" => null,
         "align" => Settings::ALIGN_JUSTIFY,
@@ -158,6 +158,16 @@ final class PDFRenderer
     {
 
         return $this->pdf->GetY() > 1050;
+    }
+
+
+    /**
+     * @return int
+     */
+    public function getCurrentPage(): int
+    {
+
+        return $this->pdf->getCurrentPage();
     }
 
     /**

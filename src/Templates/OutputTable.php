@@ -125,16 +125,18 @@ abstract class OutputTable
     protected function buildFooter(): void
     {
 
-        $renderer = $this->renderer;
+        // pozice
+        $x = $this->renderer->x();
+        $y = $this->renderer->y();
 
         // barevny pruh
-        $renderer->rect(0, $renderer->height() - 20, $renderer->width(), 20,
+        $this->renderer->rect(x: 0, y: $this->renderer->height() - 20, width: $this->renderer->width(),height:  20, setCallback:
             function (Settings $settings) {
                 $settings->setFillDrawColor($this->fontColor);
             });
 
         // vlevo - vytisknuto
-        $renderer->cell(15, -10, $renderer->width() - 10, null, sprintf("Vytisknuto %s", Date(format: "j. n. Y")),
+        $this->renderer->cell(x: 15, y:  -10, width: $this->renderer->width() - 10, height: null, text: sprintf("Vytisknuto %s", date(format: "j. n. Y")), setCallback:
             function (Settings $settings) {
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontFamily = "sans";
@@ -143,7 +145,7 @@ abstract class OutputTable
             });
 
         // stred - author
-        $renderer->link(15, -10, $renderer->width() - 10, null, $this->getAuthorName(), $this->getAuthorLink(),
+        $this->renderer->link(x: 15, y: -10, width: $this->renderer->width() - 10, height: null, text: $this->getAuthorName(), link: $this->getAuthorLink(), setCallback:
             function (Settings $settings) {
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontFamily = "sans";
@@ -152,13 +154,17 @@ abstract class OutputTable
             });
 
         // vpravo - stranky
-        $renderer->cell(0, -10, $renderer->width() - 10, null, $this->getAuthorLink(),
+        $this->renderer->cell(x: 0, y: -10, width:  $this->renderer->width() - 10, height: null, text: $this->getAuthorLink(), setCallback:
             function (Settings $settings) {
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontFamily = "sans";
                 $settings->align = $settings::ALIGN_RIGHT;
                 $settings->fontSize = 6;
             });
+
+        // restore
+        $this->renderer->setX($x);
+        $this->renderer->setY($y);
     }
 
     /**

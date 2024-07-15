@@ -394,6 +394,15 @@ abstract class BaseFPDF
     }
 
     /**
+     * @return int
+     */
+    public function getCurrentPage(): int
+    {
+
+        return $this->page;
+    }
+
+    /**
      * @param string|NULL $date
      * @param string|NULL $format
      * @return bool

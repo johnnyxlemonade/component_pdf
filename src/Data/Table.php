@@ -25,6 +25,7 @@ final class Table
      */
     public function getData(): array
     {
+
         return $this->data;
     }
 
