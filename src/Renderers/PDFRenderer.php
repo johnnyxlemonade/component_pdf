@@ -13,9 +13,21 @@ final class PDFRenderer
     const ASSETS_PATH = __DIR__ . "/../../assets/";
 
     /**
-     * @var PdfBuilder
+     * @var array
      */
-    protected PdfBuilder $pdf;
+    protected array $_coreFont = [
+        "sans" => [
+            "OpenSans-Regular.php" => Settings::FONT_STYLE_NONE,
+            "OpenSans-Semibold.php" => Settings::FONT_STYLE_BOLD,
+            "OpenSans-Italic.php" => Settings::FONT_STYLE_ITALIC,
+            "OpenSans-Semibolditalic.php" => Settings::FONT_STYLE_BOLD_ITALIC
+        ]
+    ];
+
+    /**
+     * @var PdfBuilder|null
+     */
+    protected ?PdfBuilder $pdf = null;
 
     /**
      * @var array
@@ -26,6 +38,23 @@ final class PDFRenderer
         "color" => null,
         "align" => Settings::ALIGN_JUSTIFY,
     ];
+
+    /**
+     * @return void
+     */
+    public function registerDefaultFont(): void
+    {
+
+        if($this->pdf instanceof PDFBuilder) {
+
+            foreach($this->_coreFont as $family => $fonts) {
+                foreach($fonts as $font => $style) {
+                    $this->pdf->AddFont(family: $family, style: $style, file: $font);
+                }
+            }
+        }
+
+    }
 
     /**
      * @param int $x

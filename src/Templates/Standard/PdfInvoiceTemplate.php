@@ -91,8 +91,7 @@ final class PdfInvoiceTemplate extends OutputStandard
         );
         
         // fonty
-        $this->renderer->addFont("sans", "OpenSans-Regular.php");
-        $this->renderer->addFont("sans", "OpenSans-Semibold.php", Settings::FONT_STYLE_BOLD);
+        $this->renderer->registerDefaultFont();
         
         // strankovani
         $paginator = new Paginator($this->order->getItems(), $this->itemsPerPage);

@@ -66,9 +66,9 @@ final class Diteceskatable extends OutputTable
                 "author" => "core1.agency"
             ]
         );
-        
-        $this->renderer->addFont("sans", "OpenSans-Regular.php");
-        $this->renderer->addFont("sans", "OpenSans-Semibold.php", Settings::FONT_STYLE_BOLD);
+
+        // fonty
+        $this->renderer->registerDefaultFont();
         
         $this->buildHeader();
         $this->builderLeftContent();

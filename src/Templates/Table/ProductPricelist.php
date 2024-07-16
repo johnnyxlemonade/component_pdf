@@ -63,6 +63,7 @@ class ProductPricelist extends OutputTable
         $this->property = $property;
         $this->data = $data;
 
+
         $this->renderer->createNew();
         $this->renderer->setDocumentMeta(data:
             [
@@ -71,9 +72,9 @@ class ProductPricelist extends OutputTable
                 "author" => "core1.agency"
             ]
         );
-        
-        $this->renderer->addFont(family: "sans", file: "OpenSans-Regular.php");
-        $this->renderer->addFont(family: "sans", file: "OpenSans-Semibold.php", fontStyle: Settings::FONT_STYLE_BOLD);
+
+        // fonty
+        $this->renderer->registerDefaultFont();
 
         $this->_displayHeader();
         $this->_displayContent();

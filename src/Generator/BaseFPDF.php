@@ -1187,8 +1187,10 @@ abstract class BaseFPDF
             unset($cw);
 
         } else {
+
             $info = $this->_loadfont($file);
             $info['i'] = count($this->fonts) + 1;
+
             if (!empty($info['file'])) {
                 // Embedded font
                 if ($info['type'] == 'TrueType')

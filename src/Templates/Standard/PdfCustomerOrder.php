@@ -184,9 +184,9 @@ class PdfCustomerOrder implements PdfTemplateInterface
             "subject" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate($this->customName) : $this->customName) . " " .$this->order->getNumber(),
             "author" => $this->translator->translate("metaAuthor"),
         ]);
-        
-        $this->renderer->addFont("sans", "OpenSans-Regular.php");
-        $this->renderer->addFont("sans", "OpenSans-Semibold.php", Settings::FONT_STYLE_BOLD);
+
+        // fonty
+        $this->renderer->registerDefaultFont();
         
         $paginator = new Paginator($this->order->getItems(), $this->itemsPerPage);
         
