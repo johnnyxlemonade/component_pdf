@@ -19,8 +19,8 @@ final class PDFRenderer
         "sans" => [
             "OpenSans-Regular.php" => Settings::FONT_STYLE_NONE,
             "OpenSans-Semibold.php" => Settings::FONT_STYLE_BOLD,
-            "OpenSans-Italic.php" => Settings::FONT_STYLE_ITALIC,
-            "OpenSans-Semibolditalic.php" => Settings::FONT_STYLE_BOLD_ITALIC
+            //"OpenSans-Italic.php" => Settings::FONT_STYLE_ITALIC,
+            //"OpenSans-Semibolditalic.php" => Settings::FONT_STYLE_BOLD_ITALIC
         ]
     ];
 
