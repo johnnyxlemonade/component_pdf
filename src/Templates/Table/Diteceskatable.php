@@ -49,21 +49,26 @@ final class Diteceskatable extends OutputTable
 
     /**
      * @param PDFRenderer $renderer
-     * @param Table $table
+     * @param Table $meta
+     * @param Table $data
+     * @param Table|null $property
      * @return string
      */
-    public function generateOutput(PDFRenderer $renderer, Table $table): string
+    public function generateOutput(PDFRenderer $renderer, Table $meta, Table $data, Table $property = null): string
     {
-        
+
         $this->renderer = $renderer;
-        $this->table = $table;
+        $this->data = $data;
+        $this->meta = $meta;
+        $this->property = $property;
 
         $this->renderer->createNew();
         $this->renderer->setDocumentMeta(
             data: [
-                "title" => sprintf("Nominace - %s", $this->_getFromArray(index: "nomination_code")),
-                "subject" => "nominace",
+                "title" => $meta->getConfig(index: "title"),
+                "subject" => $meta->getConfig(index: "subject"),
                 "author" => "core1.agency"
+
             ]
         );
 
@@ -126,7 +131,7 @@ final class Diteceskatable extends OutputTable
                 $settings->fontColor = $this->whiteColor;
             });
         
-        // nazev
+        // kod
         $renderer->cell($this->bodyLeft2, 50, 1, null, $this->_getFromArray(index: "nomination_code"),
             function (Settings $settings) {
                 $settings->align = $settings::ALIGN_LEFT;
@@ -135,9 +140,9 @@ final class Diteceskatable extends OutputTable
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->fontColor = $this->whiteColor;
             });
-        
-        // nazev
-        $renderer->cell($this->bodyLeft2, 80, 1, null, sprintf("Vytvořeno: %s", Date("j.n.Y, G:i", strtotime($this->_getFromArray(index: "nomination_created_on")))),
+
+        // vytvoreno
+        $renderer->cell($this->bodyLeft2, 80, 1, null, sprintf("Vytvořeno: %s", date(format: "j.n.Y, G:i", timestamp: strtotime(datetime: $this->_getFromArray(index: "nomination_created_on")))),
             function (Settings $settings) {
                 $settings->align = $settings::ALIGN_LEFT;
                 $settings->fontFamily = 'sans';
