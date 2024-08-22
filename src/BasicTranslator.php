@@ -65,7 +65,7 @@ final class BasicTranslator
             "itemCount" => "MJ",
             "itemTax" => "DPH",
             "itemUnitPrice" => "Cena / MJ",
-            "itemUnitTotal" => "Celkem S DPH",
+            "itemUnitTotal" => "Celkem s DPH",
             "accountNumber" => "Číslo účtu",
             "swiftName" => "Swift",
             "ibanName" => "Iban",

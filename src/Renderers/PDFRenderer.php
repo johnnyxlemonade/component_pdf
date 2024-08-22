@@ -364,6 +364,7 @@ final class PDFRenderer
         $text = $this->_doConversionIconv(text: $text);
 
         $settings = $this->extractSettings(callback: $setCallback);
+
         $this->restoreSettings(settings: $settings, name: "align");
 
         $this->pdf->SetXY(x: $x, y: $y);

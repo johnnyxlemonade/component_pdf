@@ -917,7 +917,9 @@ final class PdfOrderDefault extends OutputStandard
             }
         }
 
-        $renderer->rect(420, $offset, $renderer->width(), 24, function (Settings $settings) {
+        // primarniBarva
+        $renderer->rect(420, $offset, $renderer->width(), 24,
+            function (Settings $settings) {
                 $settings->setFillDrawColor($this->primaryColor);
             });
                 
