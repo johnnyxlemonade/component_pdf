@@ -34,6 +34,7 @@ final class PDFRenderer
      */
     protected array $cache = [
         "family" => "sans",
+        "fontFamily" => "sans",
         "size" => 15,
         "color" => null,
         "align" => Settings::ALIGN_JUSTIFY,

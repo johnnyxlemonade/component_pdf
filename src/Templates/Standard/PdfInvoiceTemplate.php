@@ -190,7 +190,6 @@ final class PdfInvoiceTemplate extends OutputStandard
             text: Strings::upper($this->customName && $this->translator->hasMessage(message: $this->customName) ? $this->translator->translate(message: $this->customName) : $this->customName) . " " .$this->order->getNumber(),
             setCallback: function (Settings $settings) {
                 $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontFamily = "sans";
                 $settings->fontSize = ($this->order->hasStorno() ? 16 : 22);
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->fontColor = $this->whiteColor;
@@ -759,7 +758,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontSize = 10;
                     $settings->fontColor = $this->grayColor;
-                    $settings->fontFamily = "sans";
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
                 }
             );
@@ -1109,7 +1107,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $item->getTax() . "%",
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_CENTER;
@@ -1125,7 +1122,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $this->formatter->formatNumber($item->getAmount(), 0) . "x",
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_CENTER;
@@ -1141,7 +1137,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $this->formatter->formatMoney(number: $item->getUnitPrice()),
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_RIGHT;
@@ -1157,7 +1152,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator), isStorno: $this->order->hasStorno()),
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_RIGHT;
@@ -1176,7 +1170,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $this->formatter->formatNumber($item->getAmount(), 0) . "x",
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_CENTER;
@@ -1192,7 +1185,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $this->formatter->formatMoney(number: $item->getPrice()),
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_RIGHT;
@@ -1208,7 +1200,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                     height: $this->lineHeight,
                     text: $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator, useTax: false), isStorno: $this->order->hasStorno()),
                     setCallback: function (Settings $settings) {
-                        $settings->fontFamily = "sans";
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_RIGHT;
@@ -1279,7 +1270,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                         height: 15,
                         text: sprintf("%s %s %s", $this->translator->translate(message: "vatRate"), $key, "%"),
                         setCallback: function (Settings $settings) {
-                            $settings->fontFamily = "sans";
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
                             $settings->align = $settings::ALIGN_LEFT;
                         });
@@ -1292,7 +1282,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                         height: 15,
                         text: $this->formatter->formatMoney(number: $val, formatDecimal: true),
                         setCallback: function (Settings $settings) {
-                            $settings->fontFamily = "sans";
                             $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_RIGHT;
@@ -1314,7 +1303,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                         height: 15,
                         text: $this->translator->translate(message: "summaryTaxBase"),
                         setCallback: function (Settings $settings) {
-                            $settings->fontFamily = "sans";
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
                             $settings->align = $settings::ALIGN_LEFT;
                         });
@@ -1327,7 +1315,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                         height: 15,
                         text: $this->formatter->formatMoney(number: ($this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax()) - $dphBase), isTotal: false),
                         setCallback: function (Settings $settings) {
-                            $settings->fontFamily = "sans";
                             $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_RIGHT;
@@ -1363,7 +1350,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                             height: 15,
                             text: $this->translator->translate(message: "summaryRounding"),
                             setCallback: function (Settings $settings) {
-                                $settings->fontFamily = "sans";
                                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
                                 $settings->align = $settings::ALIGN_LEFT;
                             });
@@ -1376,7 +1362,6 @@ final class PdfInvoiceTemplate extends OutputStandard
                             height: 15,
                             text: $this->formatter->formatMoney(number: $articleHaller, isTotal: false),
                             setCallback: function (Settings $settings) {
-                                $settings->fontFamily = "sans";
                                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                                 $settings->fontColor = $this->fontColor;
                                 $settings->align = $settings::ALIGN_RIGHT;
@@ -1409,7 +1394,6 @@ final class PdfInvoiceTemplate extends OutputStandard
             height: 24,
             text: $this->translator->translate(message: "totalPrice"),
             setCallback: function (Settings $settings) {
-                $settings->fontFamily = "sans";
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->align = $settings::ALIGN_LEFT;
                 $settings->fontColor = $this->whiteColor;
@@ -1424,7 +1408,6 @@ final class PdfInvoiceTemplate extends OutputStandard
             height: 24,
             text: $this->formatter->formatMoney(number: $this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax()), isStorno: $this->order->hasStorno()),
             setCallback: function (Settings $settings) {
-                $settings->fontFamily = "sans";
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontSize = 9;
