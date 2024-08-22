@@ -86,11 +86,11 @@ final class PdfInvoiceTemplate extends OutputStandard
         $this->calculator = $calculator;
                
         $this->renderer->createNew();    
-        $this->renderer->setDocumentMeta(data:
-            [
-                "title" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate($this->customName) : $this->customName) . " " .$this->order->getNumber(),
-                "subject" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate($this->customName) : $this->customName) . " " .$this->order->getNumber(),
-                "author" => $this->translator->translate("metaAuthor")
+        $this->renderer->setDocumentMeta(
+            data: [
+                "title" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate(message: $this->customName) : $this->customName) . " " .$this->order->getNumber(),
+                "subject" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate(message: $this->customName) : $this->customName) . " " .$this->order->getNumber(),
+                "author" => $this->translator->translate(message: "metaAuthor")
             ]
         );
         
@@ -98,7 +98,7 @@ final class PdfInvoiceTemplate extends OutputStandard
         $this->renderer->registerDefaultFont();
         
         // strankovani
-        $paginator = new Paginator($this->order->getItems(), $this->itemsPerPage);
+        $paginator = new Paginator(items: $this->order->getItems(), itemsPerPage:  $this->itemsPerPage);
        
         while ($paginator->nextPage()) {
             
@@ -126,16 +126,22 @@ final class PdfInvoiceTemplate extends OutputStandard
             }
                         
             // footerText - rejstrik
-            $renderer->cell(0, - 40, $this->renderer->width(), null, Strings::firstUpper($this->company->getFileNumberDesc() ?? $this->translator->translate("footerText")),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 0,
+                y: - 40,
+                width: $this->renderer->width(),
+                height: null,
+                text: Strings::firstUpper($this->company->getFileNumberDesc() ?? $this->translator->translate(message: "footerText")),
+                setCallback: function (Settings $settings) {
                     $settings->fontColor = $this->fontColor;
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
                     $settings->fontSize = 6;
                     $settings->align = $settings::ALIGN_CENTER;
-                });
+                }
+            );
             
             // paticka
-            $this->buildFooter($paginator);
+            $this->buildFooter(paginator: $paginator);
         }
         
         return $this->renderer->output();
@@ -202,7 +208,7 @@ final class PdfInvoiceTemplate extends OutputStandard
             y: 70,
             width: 1,
             height: null,
-            text: Strings::upper($this->translator->translate("documentDescription")),
+            text: Strings::upper($this->translator->translate(message: "documentDescription")),
             setCallback: function (Settings $settings) {
                 $settings->align = $settings::ALIGN_LEFT;
                 $settings->fontSize = 10;
@@ -329,6 +335,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
                     $settings->fontColor = $this->fontColor;
+                    $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
                 }
             );
@@ -371,7 +378,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $positionY + ($multiplier * 20),
                 width: 1,
                 height: null,
-                text: $this->translator->translate("notTax"),
+                text: $this->translator->translate(message: "notTax"),
                 setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
                     $settings->fontColor = $this->fontColor;
@@ -549,111 +556,14 @@ final class PdfInvoiceTemplate extends OutputStandard
                 $settings->setFillDrawColor(color: $this->lineColor);
             }
         );
-        
-        
-        // vlevo - bankovni ucet
-        if ($this->order->getAccount()->getBank()) {
-            
-            // ucetNazev
-            $renderer->cell(
-                x: 40,
-                y: 265,
-                width: 1,
-                height: null,
-                text: $this->translator->translate(message: "bankAccount"),
-                setCallback: function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontSize = 10;
-                    $settings->fontColor = $this->whiteColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                }
-            );
-            
-            // ucetHodnota
-            $renderer->cell(
-                x: 380,
-                y: 265,
-                width: 1,
-                height: null,
-                text: $this->order->getAccount()->getBank(),
-                setCallback: function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                }
-            );
-        }
-        
-        // vlevo - iban
-        if ($this->order->getAccount()->isValid()) {
-            
-            // ibanNazev
-            $renderer->cell(
-                x: 40,
-                y: 285,
-                width: 1,
-                height: null,
-                text: Strings::upper($this->translator->translate(message: "ibanName")),
-                setCallback: function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontSize = 10;
-                    $settings->fontColor = $this->whiteColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                }
-            );
-            
-            // ibanHodnota
-            $renderer->cell(
-                x: 380,
-                y: 285,
-                width: 1,
-                height: null,
-                text: $this->order->getAccount()->getIBan(format: true),
-                setCallback: function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                }
-            );
-        }
-        
-        // vlevo - swift
-        if ($this->order->getAccount()->isValid()) {
-            
-            // swiftNazev
-            $renderer->cell(
-                x: 40,
-                y: 305,
-                width: 1,
-                height: null,
-                text: $this->translator->translate(message: "swiftName"),
-                setCallback: function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontSize = 10;
-                    $settings->fontColor = $this->whiteColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                }
-            );
-            
-            // swiftHodnota
-            $renderer->cell(
-                x: 380,
-                y: 305,
-                width: 1,
-                height: null,
-                text: $this->order->getAccount()->getSwift(),
-                setCallback: function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                }
-            );
-        }
-        
+
         // vlevo - platba
         if ($this->order->getPayment()->getPaymentName()) {
-            
+
             // platbaNazev
             $renderer->cell(
                 x: 40,
-                y: 325,
+                y: 265,
                 width: 1,
                 height: null,
                 text: $this->translator->translate(message: "paymentName"),
@@ -664,11 +574,11 @@ final class PdfInvoiceTemplate extends OutputStandard
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
                 }
             );
-            
+
             // platbaHodnota
             $renderer->cell(
                 x: 380,
-                y: 325,
+                y: 265,
                 width: 1,
                 height: null,
                 text: $this->order->getPayment()->getPaymentName(),
@@ -678,8 +588,104 @@ final class PdfInvoiceTemplate extends OutputStandard
                 }
             );
         }
-        
-        
+
+        // vlevo - bankovni ucet
+        if ($this->order->getAccount()->getBank()) {
+
+            // ucetNazev
+            $renderer->cell(
+                x: 40,
+                y: 285,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "bankAccount"),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // ucetHodnota
+            $renderer->cell(
+                x: 380,
+                y: 285,
+                width: 1,
+                height: null,
+                text: $this->order->getAccount()->getBank(),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+        }
+
+        // vlevo - iban
+        if ($this->order->getAccount()->isValid()) {
+
+            // ibanNazev
+            $renderer->cell(
+                x: 40,
+                y: 305,
+                width: 1,
+                height: null,
+                text: Strings::upper($this->translator->translate(message: "ibanName")),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // ibanHodnota
+            $renderer->cell(
+                x: 380,
+                y: 305,
+                width: 1,
+                height: null,
+                text: $this->order->getAccount()->getIBan(format: true),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+        }
+
+        // vlevo - swift
+        if ($this->order->getAccount()->isValid()) {
+
+            // swiftNazev
+            $renderer->cell(
+                x: 40,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "swiftName"),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // swiftHodnota
+            $renderer->cell(
+                x: 380,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->order->getAccount()->getSwift(),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
+        }
+
         // vpravo - variabilni symbol
         if ($this->order->getPayment()->getVariableSymbol() || $this->order->hasStorno()) {
             
@@ -785,7 +791,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: 325,
                 width: 1,
                 height: null,
-                text: $this->translator->translate("taxDate"),
+                text: $this->translator->translate(message: "taxDate"),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontSize = 10;
@@ -858,7 +864,7 @@ final class PdfInvoiceTemplate extends OutputStandard
             y: $offsetHead - 32,
             width: 480,
             height: 30,
-            text: Strings::firstUpper(($this->order->hasStorno() ? sprintf($this->translator->translate("bodyBeforeStorno"), $this->order->getExtraData()["stornoInvoiceId"] ?? "") : $this->translator->translate("bodyBefore"))),
+            text: Strings::firstUpper(($this->order->hasStorno() ? sprintf($this->translator->translate(message: "bodyBeforeStorno"), $this->order->getExtraData()["stornoInvoiceId"] ?? "") : $this->translator->translate(message: "bodyBefore"))),
             setCallback: function (Settings $settings) {
                 $settings->fontColor = $this->grayColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
@@ -872,7 +878,7 @@ final class PdfInvoiceTemplate extends OutputStandard
             y: $offsetHead,
             width: $this->configItems["itemCatalog"]["y"],
             height: $this->lineHeight,
-            text: Strings::firstUpper($this->translator->translate("itemCatalog")),
+            text: Strings::firstUpper($this->translator->translate(message: "itemCatalog")),
             setCallback: function (Settings $settings) {
                 $settings->fontColor = $this->grayColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
@@ -887,7 +893,7 @@ final class PdfInvoiceTemplate extends OutputStandard
             y: $offsetHead,
             width: $this->configItems["itemName"]["y"],
             height: $this->lineHeight,
-            text: Strings::firstUpper($this->translator->translate("itemName")),
+            text: Strings::firstUpper($this->translator->translate(message: "itemName")),
             setCallback: function (Settings $settings) {
                 $settings->fontColor = $this->grayColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
@@ -905,7 +911,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemTax"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemTax")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemTax")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_CENTER;
                 }
@@ -917,7 +923,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemCount"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemCount")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemCount")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_CENTER;
                 }
@@ -929,7 +935,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemUnitPrice"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemUnitPrice")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitPrice")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
                 }
@@ -941,7 +947,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemUnitTotal"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemUnitTotal")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitTotal")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
                 }
@@ -955,7 +961,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemCount"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemCount")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemCount")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_CENTER;
                 }
@@ -967,7 +973,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemUnitPrice"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemUnitPrice")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitPrice")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
                 }
@@ -979,7 +985,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $offsetHead,
                 width: $this->configItems["itemUnitTotal"]["y"],
                 height: $this->lineHeight,
-                text: Strings::firstUpper($this->translator->translate("itemUnitTotal")),
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitTotal")),
                 setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
                 }
@@ -1272,7 +1278,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                         setCallback: function (Settings $settings) {
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
                             $settings->align = $settings::ALIGN_LEFT;
-                        });
+                        }
+                    );
 
                     // dphHodnota
                     $renderer->cell(
@@ -1285,7 +1292,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                             $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_RIGHT;
-                        });
+                        }
+                    );
 
                     $offset += 15;
                 }
@@ -1303,9 +1311,11 @@ final class PdfInvoiceTemplate extends OutputStandard
                         height: 15,
                         text: $this->translator->translate(message: "summaryTaxBase"),
                         setCallback: function (Settings $settings) {
+                            $settings->fontColor = $this->fontColor;
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
                             $settings->align = $settings::ALIGN_LEFT;
-                        });
+                        }
+                    );
 
                     // dphHodnota
                     $renderer->cell(
@@ -1318,7 +1328,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                             $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_RIGHT;
-                        });
+                        }
+                    );
 
                     $offset += 15;
                 }
@@ -1329,11 +1340,11 @@ final class PdfInvoiceTemplate extends OutputStandard
 
                     if($this->order->getPayment()->getCurrency() === "EUR") {
 
-                        $articleTotal  = round(num: $totalGoods, precision: 1);
+                        $articleTotal = round(num: $totalGoods, precision: 1);
 
                     } else {
 
-                        $articleTotal  = round(num: $totalGoods);
+                        $articleTotal = round(num: $totalGoods);
                     }
 
                     $articleHaller = round(num: ($articleTotal - $totalGoods), precision: 3);
@@ -1350,9 +1361,11 @@ final class PdfInvoiceTemplate extends OutputStandard
                             height: 15,
                             text: $this->translator->translate(message: "summaryRounding"),
                             setCallback: function (Settings $settings) {
+                                $settings->fontColor = $this->fontColor;
                                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
                                 $settings->align = $settings::ALIGN_LEFT;
-                            });
+                            }
+                        );
 
                         // dphHodnota
                         $renderer->cell(
@@ -1365,7 +1378,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                                 $settings->fontColor = $this->fontColor;
                                 $settings->align = $settings::ALIGN_RIGHT;
-                            });
+                            }
+                        );
 
                         $offset += 15;
                     }
@@ -1384,7 +1398,8 @@ final class PdfInvoiceTemplate extends OutputStandard
             height: 24,
             setCallback: function (Settings $settings) {
                 $settings->setFillDrawColor(color: $this->primaryColor);
-        });
+            }
+        );
         
         // celkovaCena - popisek
         $renderer->cell(
@@ -1398,7 +1413,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                 $settings->align = $settings::ALIGN_LEFT;
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontSize = 8;
-        });
+            }
+        );
         
         // celkovaCena - hodnota
         $renderer->cell(
@@ -1412,7 +1428,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontSize = 9;
                 $settings->align = $settings::ALIGN_RIGHT;
-        });
+            }
+        );
         
         // stamp
         if($this->schema->hasStampPath()) {
@@ -1421,6 +1438,4 @@ final class PdfInvoiceTemplate extends OutputStandard
         }
     }
 
-
-    
 }

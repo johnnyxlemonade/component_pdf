@@ -25,6 +25,41 @@ final class PdfOrderDefault extends OutputStandard
 {
 
     /**
+     * @var int
+     */
+    private int $lineHeight = 35;
+
+    /**
+     * @var array
+     */
+    private array $configItems = [
+        "itemCatalog" => [
+            "x" => 40,
+            "y" => 100
+        ],
+        "itemName" => [
+            "x" => 140,
+            "y" => 290
+        ],
+        "itemTax" => [
+            "x" => 420,
+            "y" => 40
+        ],
+        "itemCount" => [
+            "x" => 480,
+            "y" => 40
+        ],
+        "itemUnitPrice" => [
+            "x" => 540,
+            "y" => 80
+        ],
+        "itemUnitTotal" => [
+            "x" => 600,
+            "y" => 160
+        ]
+    ];
+
+    /**
      * @param FloatCalculator $calculator
      * @param PDFRenderer $renderer
      * @param Company $company
@@ -51,17 +86,19 @@ final class PdfOrderDefault extends OutputStandard
         $this->company = $company;
         $this->calculator = $calculator;
                
-        $this->renderer->createNew();    
-        $this->renderer->setDocumentMeta([
-            "title" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate($this->customName) : $this->customName) . " " .$this->order->getNumber(),
-            "subject" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate($this->customName) : $this->customName) . " " .$this->order->getNumber(),
-            "author" => $this->translator->translate("metaAuthor"),            
-        ]);
+        $this->renderer->createNew();
+        $this->renderer->setDocumentMeta(
+            data: [
+                "title" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate(message: $this->customName) : $this->customName) . " " .$this->order->getNumber(),
+                "subject" => Strings::firstUpper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate(message: $this->customName) : $this->customName) . " " .$this->order->getNumber(),
+                "author" => $this->translator->translate(message: "metaAuthor"),
+            ]
+        );
 
         // fonty
         $this->renderer->registerDefaultFont();
         
-        $paginator = new Paginator($this->order->getItems(), $this->itemsPerPage);
+        $paginator = new Paginator(items: $this->order->getItems(), itemsPerPage:  $this->itemsPerPage);
        
         while ($paginator->nextPage()) {
             
@@ -79,19 +116,19 @@ final class PdfOrderDefault extends OutputStandard
             
             
             $offset = 380;
-            $this->buildBody($offset, 30);
-            $offset = $this->buildItems($offset + 35, $paginator->getItems());
+            $this->buildBody(offsetHead: $offset, offsetBody:  30);
+            $offset = $this->buildItems(offset: $offset + 35, items:  $paginator->getItems());
                     
             // posledniStrana
             if ($paginator->isLastPage()) {
                 
-                $this->buildTotal($offset + 20);
+                $this->buildTotal(offset: $offset + 20);
                 $this->buildNotice();
                 $this->buildMessage();
             }
                         
             // paticka
-            $this->buildFooter($paginator);
+            $this->buildFooter(paginator: $paginator);
             
         }
         
@@ -105,66 +142,86 @@ final class PdfOrderDefault extends OutputStandard
     {
         
         $renderer = $this->renderer;
-        
+
         // bily polygon
-        $renderer->polygon([
-            0, 0,
-            0, 100,
-            396, 100,
-            396, 0,
-        ], function (Settings $settings) {
-            $settings->setFillDrawColor($this->whiteColor);
-        });
-        
-        
+        $renderer->polygon(
+            points: [
+                0, 0,
+                0, 100,
+                396, 100,
+                396, 0,
+            ],
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->whiteColor);
+            }
+        );
+
         // logo
         if($this->schema->hasLogoPath()) {
-            $renderer->addImage($this->schema->getLogoPath(), 40, 40, 374/2);
+
+            $renderer->addImage(logo: $this->schema->getLogoPath(), x: 40, y:  40, width:  374/2);
         }
-        
+
         // barevny polygon
-        $renderer->polygon([
-            396, 0,
-            396, 100,
-            $renderer->width(), 100,
-            $renderer->height(), 0,
-        ], function (Settings $settings) {
-            $settings->setFillDrawColor($this->primaryColor);
-        });
-        
+        $renderer->polygon(
+            points: [
+                396, 0,
+                396, 100,
+                $renderer->width(), 100,
+                $renderer->height(), 0,
+            ],
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->primaryColor);
+            }
+        );
+
         // nazev
-        $renderer->cell(420, 45, 1, null, Strings::upper($this->customName && $this->translator->hasMessage($this->customName) ? $this->translator->translate($this->customName) : $this->customName) . " " . $this->order->getNumber(),
-            function (Settings $settings) {
+        $renderer->cell(
+            x: 420,
+            y: 45,
+            width: 1,
+            height: null,
+            text: Strings::upper($this->customName && $this->translator->hasMessage(message: $this->customName) ? $this->translator->translate(message: $this->customName) : $this->customName) . " " .$this->order->getOrderId(),
+            setCallback: function (Settings $settings) {
                 $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontFamily = "sans";
-                $settings->fontSize = 18;
+                $settings->fontSize = ($this->order->hasStorno() ? 16 : 22);
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->fontColor = $this->whiteColor;
-            });
+            }
+        );
         
         // odkaz na stav objednavky
         if($this->order->getOrderStatusUrl() !== null) {
             
-            $renderer->link(420, 70, 1, null, Strings::upper($this->order->getOrderIdentificator()), $this->order->getOrderStatusUrl(),
-                function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontFamily = 'sans';
+            $renderer->link(
+                x: 420,
+                y: 70,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "orderIdentificator") . $this->order->getOrderIdentificator(),
+                link: Strings::upper($this->order->getOrderStatusUrl()),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                     $settings->fontColor = $this->whiteColor;
-                });
+                }
+            );
             
         } else {
-            
-            // popis
-            $renderer->cell(420, 70, 1, null, Strings::upper((string) $this->order->getOrderIdentificator()),
-                function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontFamily = 'sans';
-                    $settings->fontSize = 10;
+
+            $renderer->cell(
+                x: 420,
+                y: 70,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "orderIdentificator") . $this->order->getOrderIdentificator(),
+                setCallback: function (Settings $settings) {
+                    $settings->fontSize = 8;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                     $settings->fontColor = $this->whiteColor;
-                });
+                }
+            );
+
         }
         
     }
@@ -176,38 +233,63 @@ final class PdfOrderDefault extends OutputStandard
     {
         
         $renderer = $this->renderer;
-        
+
         // dodavatelPopis
-        $renderer->cell(40, 120, 1, null, Strings::upper($this->translator->translate("supplierName")),
-            function (Settings $settings) {
+        $renderer->cell(
+            x: 40,
+            y: 120,
+            width: 1,
+            height: null,
+            text: Strings::upper($this->translator->translate(message: "supplierName")),
+            setCallback: function (Settings $settings) {
                 $settings->fontSize = 6;
                 $settings->fontColor = $this->grayColor;
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-            });
-        
-        
+            }
+        );
+
         // dodavalJmeno
-        $renderer->cell(40, 140, 1, null, $this->company->getName(),
-            function (Settings $settings) {
+        $renderer->cell(
+            x: 40,
+            y: 140,
+            width: 1,
+            height: null,
+            text: $this->company->getName(),
+            setCallback: function (Settings $settings) {
                 $settings->fontSize = 10;
                 $settings->fontColor = $this->fontColor;
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-            });
-        
-        $renderer->cell(40, 160, 1, null, $this->company->getAddress(),
-            function (Settings $settings) {
+            }
+        );
+
+        // adresaUlice
+        $renderer->cell(
+            x: 40,
+            y: 160,
+            width: 1,
+            height: null,
+            text: $this->company->getAddress(),
+            setCallback: function (Settings $settings) {
                 $settings->fontSize = 8;
+                $settings->fontColor = $this->fontColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-        
-        
-        // dodavatelMestoPsc
-        $renderer->cell(40, 175, 1, null, $this->company->getZip() . " " . $this->company->getTown(),
-            function (Settings $settings) {
+            }
+        );
+
+        // adresaMestoPsc
+        $renderer->cell(
+            x: 40,
+            y: 175,
+            width: 1,
+            height: null,
+            text: $this->company->getZip() . ' ' . $this->company->getTown(),
+            setCallback: function (Settings $settings) {
                 $settings->fontSize = 8;
+                $settings->fontColor = $this->fontColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-        
+            }
+        );
+
         
         $positionY  = 210;
         $multiplier = 0;
@@ -216,60 +298,103 @@ final class PdfOrderDefault extends OutputStandard
         if (!empty($this->company->getTin())) {
 
             // dodavatelIcoNazev
-            $renderer->cell(40, $positionY, 1, null, $this->translator->translate("vatName"),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 40,
+                y: $positionY,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "vatName"),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
+                    $settings->fontColor = $this->fontColor;
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->align = $settings::ALIGN_LEFT;
-                });
-            
-            // dodavalIcoHodnota
-            $renderer->cell(380, $positionY, 1, null, $this->company->getTin(),
-                function (Settings $settings) {
+                }
+            );
+
+
+            // dodavatelIcoHodnota
+            $renderer->cell(
+                x: 380,
+                y: $positionY,
+                width: 1,
+                height: null,
+                text: $this->company->getTin(),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
+                    $settings->fontColor = $this->fontColor;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                     $settings->align = $settings::ALIGN_RIGHT;
-                });
+                }
+            );
+
             
             $multiplier++;
         }
         
         // dodavatelDIC
         if ($this->company->hasTax()) {
-            
-            // dodavatelDicNazev
-            $renderer->cell(40,  $positionY + ($multiplier * 20), 1, null, $this->translator->translate("vaTinName"),
-                function (Settings $settings) {
+
+            // dodavatelDICNazev
+            $renderer->cell(
+                x: 40,
+                y: $positionY + ($multiplier * 20),
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "vaTinName"),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                    $settings->fontColor = $this->fontColor;
                     $settings->align = $settings::ALIGN_LEFT;
-                });
-            
-            // dodavalDicHodnota
-            $renderer->cell(380,  $positionY + ($multiplier * 20), 1, null, $this->company->getVaTin(),
-                function (Settings $settings) {
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // dodavatelDICHodnota
+            $renderer->cell(
+                x: 380,
+                y: $positionY + ($multiplier * 20),
+                width: 1,
+                height: null,
+                text: $this->company->getVaTin(),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
+                    $settings->fontColor = $this->fontColor;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                     $settings->align = $settings::ALIGN_RIGHT;
-                });
+                }
+            );
             
         } else {
-            
-            // dodavatelDicNazev
-            $renderer->cell(40,  $positionY + ($multiplier * 20), 1, null, $this->translator->translate("vaTinName"),
-                function (Settings $settings) {
+
+            // dodavatelDICNazev
+            $renderer->cell(
+                x: 40,
+                y: $positionY + ($multiplier * 20),
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "vaTinName"),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
+                    $settings->fontColor = $this->fontColor;
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
                     $settings->align = $settings::ALIGN_LEFT;
-                });
-            
-            // dodavatelDicNeplatce
-            $renderer->cell(380,  $positionY + ($multiplier * 20), 1, null, $this->translator->translate("notTax"),
-                function (Settings $settings) {
+                }
+            );
+
+            // dodavatelDICHodnota
+            $renderer->cell(
+                x: 380,
+                y: $positionY + ($multiplier * 20),
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "notTax"),
+                setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
+                    $settings->fontColor = $this->fontColor;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                     $settings->align = $settings::ALIGN_RIGHT;
-                });
+                }
+            );
         }
     }
 
@@ -280,74 +405,135 @@ final class PdfOrderDefault extends OutputStandard
     {
         
         $renderer = $this->renderer;
-        
+
         // odberatelNazev
-        $renderer->cell(420, 120, 1, null, Strings::upper($this->translator->translate("subscriberLabel")), function (Settings $settings) {
-            $settings->fontSize = 6;
-            $settings->align = $settings::ALIGN_LEFT;
-            $settings->fontColor = $this->grayColor;
-            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-        });
-        
-        
+        $renderer->cell(
+            x: 420,
+            y: 120,
+            width: 1,
+            height: null,
+            text: Strings::upper($this->translator->translate(message: "subscriberLabel")),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 6;
+                $settings->align = $settings::ALIGN_LEFT;
+                $settings->fontColor = $this->grayColor;
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+            }
+        );
+
         // odberatelJmeno
-        $renderer->cell(420, 140, 1, null, $this->customerBilling->getName(), function (Settings $settings) {
-            $settings->fontSize = 10;
-            $settings->fontColor = $this->fontColor;
-            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-        });
-        
+        $renderer->cell(
+            x: 420,
+            y: 140,
+            width: 1,
+            height: null,
+            text: $this->customerBilling->getName(),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 10;
+                $settings->fontColor = $this->fontColor;
+                $settings->align = $settings::ALIGN_LEFT;
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+            }
+        );
+
         // odberatelUlice
-        $renderer->cell(420, 160, 1, null, $this->customerBilling->getAddress(), function (Settings $settings) {
-            $settings->fontSize = 8;
-            $settings->fontStyle = $settings::FONT_STYLE_NONE;
-        });
-        
-        // odberatelMesto
-        $renderer->cell(420, 175, 1, null, $this->customerBilling->getZip() . " " . $this->customerBilling->getTown(), function (Settings $settings) {
-            $settings->fontSize = 8;
-            $settings->fontStyle = $settings::FONT_STYLE_NONE;
-        });
+        $renderer->cell(
+            x: 420,
+            y: 160,
+            width: 1,
+            height: null,
+            text: $this->customerBilling->getAddress(),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 8;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+            }
+        );
+
+        // odberatelMestoPSC
+        $renderer->cell(
+            x: 420,
+            y: 175,
+            width: 1,
+            height: null,
+            text: $this->customerBilling->getZip() . " " . $this->customerBilling->getTown(),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 8;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+            }
+        );
+
         
         $positionY  = 210;
         $multiplier = 0;
         
         // odberatelICO
         if (!empty($ico = $this->customerBilling->getTin())) {
-            
+
             // odberatelIcoNazev
-            $renderer->cell(420, $positionY, 1, null, $this->translator->translate("vatName"), function (Settings $settings) {
-                $settings->fontSize = 8;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                $settings->align = $settings::ALIGN_LEFT;
-            });
-            
+            $renderer->cell(
+                x: 420,
+                y: $positionY,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "vatName"),
+                setCallback: function (Settings $settings) {
+                    $settings->fontSize = 8;
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                    $settings->align = $settings::ALIGN_LEFT;
+                }
+            );
+
             // odberatelIcoHodnota
-            $renderer->cell(760, $positionY, 1, null, $ico, function (Settings $settings) {
-                $settings->fontSize = 8;
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->align = $settings::ALIGN_RIGHT;
-            });
+            $renderer->cell(
+                x: 760,
+                y: $positionY,
+                width: 1,
+                height: null,
+                text: $this->customerBilling->getTin(),
+                setCallback: function (Settings $settings) {
+                    $settings->fontSize = 8;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                    $settings->align = $settings::ALIGN_RIGHT;
+                }
+            );
+
             
             $multiplier++;
         }
         
         // odberatelDIC
         if ($this->customerBilling->hasTax()) {
-            
+
             // odberatelDicNazev
-            $renderer->cell(420,  $positionY + ($multiplier * 20), 1, null, $this->translator->translate("vaTinName"), function (Settings $settings) {
-                $settings->fontSize = 8;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                $settings->align = $settings::ALIGN_LEFT;
-            });
-            
+            $renderer->cell(
+                x: 420,
+                y: $positionY + ($multiplier * 20),
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "vaTinName"),
+                setCallback: function (Settings $settings) {
+                    $settings->fontSize = 8;
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                    $settings->align = $settings::ALIGN_LEFT;
+                }
+            );
+
             // odberatelDicHodnota
-            $renderer->cell(760,  $positionY + ($multiplier * 20), 1, null, $this->customerBilling->getVaTin(), function (Settings $settings) {
-                $settings->fontSize = 8;
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->align = $settings::ALIGN_RIGHT;
-            });
+            $renderer->cell(
+                x: 760,
+                y: $positionY + ($multiplier * 20),
+                width: 1,
+                height: null,
+                text: $this->customerBilling->getVaTin(),
+                setCallback: function (Settings $settings) {
+                    $settings->fontSize = 8;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                    $settings->align = $settings::ALIGN_RIGHT;
+                }
+            );
+
         }
         
     }
@@ -360,196 +546,319 @@ final class PdfOrderDefault extends OutputStandard
         
         $renderer = $this->renderer;
         $half = ($renderer->width()) / 2;
-        
+
         // barevny pruh
-        $renderer->rect(0, 245, $half, 100, function (Settings $settings) {
-            $settings->setFillDrawColor($this->primaryColor);
-        });
-        
+        $renderer->rect(
+            x: 0,
+            y: 245,
+            width: $half,
+            height: 100,
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->primaryColor);
+            }
+        );
+
         // sedy pruh
-        $renderer->rect($half, 245, $half, 100, function (Settings $settings) {
-            $settings->setFillDrawColor($this->lineColor);
-        });
-        
-        
-        // vlevo - bankovni ucet
-        if ($this->order->getAccount()->getBank()) {
-            
-            // ucetNazev
-            $renderer->cell(40, 265, 1, null, $this->translator->translate("bankAccount"), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontSize = 10;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontFamily = 'sans';
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-            
-            // ucetHodnota
-            $renderer->cell(380, 265, 1, null, $this->order->getAccount()->getBank(), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_RIGHT;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-        }
-        
-        // vlevo - iban
-        if ($this->order->getAccount()->isValid()) {
-            
-            // ibanNazev
-            $renderer->cell(40, 285, 1, null, Strings::upper($this->translator->translate("ibanName")), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontSize = 10;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontFamily = 'sans';
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-            
-            // ibanHodnota
-            $renderer->cell(380, 285, 1, null, $this->order->getAccount()->getIBan(true), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_RIGHT;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-        }
-        
-        // vlevo - swift
-        if ($this->order->getAccount()->isValid()) {
-            
-            // swiftNazev
-            $renderer->cell(40, 305, 1, null, $this->translator->translate("swiftName"), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontSize = 10;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontFamily = 'sans';
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-            
-            // swiftHodnota
-            $renderer->cell(380, 305, 1, null, $this->order->getAccount()->getSwift(), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_RIGHT;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-        }
-        
+        $renderer->rect(
+            x: $half,
+            y: 245,
+            width: $half,
+            height: 100,
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->lineColor);
+            }
+        );
+
         // vlevo - platba
         if ($this->order->getPayment()->getPaymentName()) {
-            
+
             // platbaNazev
-            $renderer->cell(40, 325, 1, null, $this->translator->translate("paymentName"), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontSize = 10;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontFamily = 'sans';
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-            
+            $renderer->cell(
+                x: 40,
+                y: 265,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "paymentName"),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
             // platbaHodnota
-            $renderer->cell(380, 325, 1, null, $this->order->getPayment()->getPaymentName(), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_RIGHT;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
+            $renderer->cell(
+                x: 380,
+                y: 265,
+                width: 1,
+                height: null,
+                text: $this->order->getPayment()->getPaymentName(),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
         }
 
-        // vpravo
+        // vlevo - bankovni ucet
+        if ($this->order->getAccount()->getBank()) {
+
+            // ucetNazev
+            $renderer->cell(
+                x: 40,
+                y: 285,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "bankAccount"),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // ucetHodnota
+            $renderer->cell(
+                x: 380,
+                y: 285,
+                width: 1,
+                height: null,
+                text: $this->order->getAccount()->getBank(),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+        }
+
+        // vlevo - iban
+        if ($this->order->getAccount()->isValid()) {
+
+            // ibanNazev
+            $renderer->cell(
+                x: 40,
+                y: 305,
+                width: 1,
+                height: null,
+                text: Strings::upper($this->translator->translate(message: "ibanName")),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // ibanHodnota
+            $renderer->cell(
+                x: 380,
+                y: 305,
+                width: 1,
+                height: null,
+                text: $this->order->getAccount()->getIBan(format: true),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+        }
+
+        // vlevo - swift
+        if ($this->order->getAccount()->isValid()) {
+
+            // swiftNazev
+            $renderer->cell(
+                x: 40,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "swiftName"),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->whiteColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // swiftHodnota
+            $renderer->cell(
+                x: 380,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->order->getAccount()->getSwift(),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
+        }
+
+        // vpravo - variabilni symbol
         if($this->order->getNumber()) {
-            
-            // interniCisloObjednavky (nazev)
-            $renderer->cell(420, 265, 1, null, $this->translator->translate("documentOrderName"), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontSize = 10;
-                $settings->fontColor = $this->grayColor;
-                $settings->fontFamily = 'sans';
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-            
-            // interniCisloObjednavky (hodnota)
-            $renderer->cell(760, 265, 1, null, $this->order->getPayment()->getVariableSymbol(), function (Settings $settings) {
-                $settings->align = $settings::ALIGN_RIGHT;
-                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-            });
-            
+
+            // interniCisloObjednavky
+            $renderer->cell(
+                x: 420,
+                y: 265,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "documentOrderName"),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_LEFT;
+                    $settings->fontSize = 10;
+                    $settings->fontColor = $this->grayColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                }
+            );
+
+            // interniCisloObjednavky - hodnota
+            $renderer->cell(
+                x: 760,
+                y: 265,
+                width: 1,
+                height: null,
+                text: $this->order->getOrderId(),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
         }
         
         // vpravo - datum objednavky
         if ($this->order->getAccount()->getBank()) {
-            
+
             // vystaveniNazev
-            $renderer->cell(420, 285, 1, null, $this->translator->translate("orderDate"),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 420,
+                y: 285,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "orderDate"),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontSize = 10;
                     $settings->fontColor = $this->grayColor;
-                    $settings->fontFamily = 'sans';
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
-            
+                }
+            );
+
             // vystaveniHodnota
-            $renderer->cell(760, 285, 1, null, $this->formatter->formatDate($this->order->getCreated()),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 760,
+                y: 285,
+                width: 1,
+                height: null,
+                text: $this->formatter->formatDate(date: $this->order->getCreated()),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
         }
         
         // vpravo - datum objednavky
         if ($this->order->getExternalDealerId()) {
-            
-            // vystaveniNazev
-            $renderer->cell(420, 305, 1, null, $this->translator->translate("documentExternalDealerId"),
-                function (Settings $settings) {
+
+            //
+            $renderer->cell(
+                x: 420,
+                y: 305,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "documentExternalDealerId"),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontSize = 10;
                     $settings->fontColor = $this->grayColor;
-                    $settings->fontFamily = 'sans';
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
-            
+                }
+            );
+
             // vystaveniHodnota
-            $renderer->cell(760, 305, 1, null, $this->order->getExternalDealerId(),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 760,
+                y: 305,
+                width: 1,
+                height: null,
+                text: (string) $this->order->getExternalDealerId(),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
         }
         
-        // vpravo - variabilniSymbol
+        // vpravo - externiId / VS symbiol
         if ($this->order->getExternalId()) {
             
             // variabilniSymbol (nazev)
-            $renderer->cell(420, 325, 1, null, $this->translator->translate("varSymbol"),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 420,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "varSymbol"),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontSize = 10;
                     $settings->fontColor = $this->grayColor;
-                    $settings->fontFamily = 'sans';
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
-            
+                }
+            );
+
             // externiCisloObjednavky (hodnota)
-            $renderer->cell(760, 325, 1, null, $this->order->getExternalId(),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 760,
+                y: 325,
+                width: 1,
+                height: null,
+                text: (string) $this->order->getExternalId(),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
-            
-            
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
         } else {
             
             // variabilniSymbol (nazev)
-            $renderer->cell(420, 325, 1, null, $this->translator->translate("varSymbol"),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 420,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->translator->translate(message: "varSymbol"),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_LEFT;
                     $settings->fontSize = 10;
                     $settings->fontColor = $this->grayColor;
-                    $settings->fontFamily = 'sans';
                     $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
+                }
+            );
+
             
             // interCisloObjednavky (hodnota)
-            $renderer->cell(760, 325, 1, null, $this->order->getNumber(),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: 760,
+                y: 325,
+                width: 1,
+                height: null,
+                text: $this->order->getPayment()->getVariableSymbol(),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                });
-            
+                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                }
+            );
+
         }
         
         
@@ -560,14 +869,19 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildVerticalLine(): void
     {
-        
-        $renderer = $this->renderer;
-        
-        // barevny pruh
-        $renderer->rect($renderer->width() / 2 - 1, 101, 1, 143, function (Settings $settings) {
-            $settings->setFillDrawColor($this->lineColor);
-        });
 
+        $renderer = $this->renderer;
+
+        // barevny pruh
+        $renderer->rect(
+            x: $renderer->width() / 2 - 1,
+            y: 102,
+            width: 1,
+            height: 140,
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->lineColor);
+            }
+        );
     }
 
     /**
@@ -577,110 +891,171 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildBody(int $offsetHead, int $offsetBody): void
     {
-        
+
         $renderer = $this->renderer;
-        
-        $renderer->rect(0, $offsetHead, $renderer->width(), 30, function (Settings $settings) {
-            $settings->setFillDrawColor($this->evenColor);
-        });
-        
-        $renderer->rect(0, $offsetHead + $offsetBody, $renderer->width(), 1, function (Settings $settings) {
-            $settings->setFillDrawColor($this->primaryColor);
-        });
-        
+
+        $renderer->rect(
+            x: 0,
+            y: $offsetHead,
+            width: $renderer->width(),
+            height: 30,
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->evenColor);
+            });
+
+        $renderer->rect(
+            x: 0,
+            y: $offsetHead + $offsetBody - 1,
+            width: $renderer->width(),
+            height: 1,
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->primaryColor);
+            });
+
         // vypis polozek
-        $renderer->cell(40, $offsetHead - 32, 360, 30, Strings::firstUpper($this->translator->translate("orderBefore")),
-            function (Settings $settings) {
+        $renderer->cell(
+            x: 40,
+            y: $offsetHead - 32,
+            width: 480,
+            height: 30,
+            text: Strings::firstUpper($this->translator->translate(message: "orderBefore")),
+            setCallback: function (Settings $settings) {
                 $settings->fontColor = $this->grayColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
                 $settings->fontSize = 8;
                 $settings->align = $settings::ALIGN_LEFT;
             });
 
-        // pokud je dodavatel platce DPH
+        // kodPozky
+        $renderer->cell(
+            x: $this->configItems["itemCatalog"]["x"],
+            y: $offsetHead,
+            width: $this->configItems["itemCatalog"]["y"],
+            height: $this->lineHeight,
+            text: Strings::firstUpper($this->translator->translate(message: "itemCatalog")),
+            setCallback: function (Settings $settings) {
+                $settings->fontColor = $this->grayColor;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->fontSize = 8;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
+
+        // nazevPolozky
+        $renderer->cell(
+            x: $this->configItems["itemName"]["x"],
+            y: $offsetHead,
+            width: $this->configItems["itemName"]["y"],
+            height: $this->lineHeight,
+            text: Strings::firstUpper($this->translator->translate(message: "itemName")),
+            setCallback: function (Settings $settings) {
+                $settings->fontColor = $this->grayColor;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->fontSize = 8;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
+
+        // pokud je dodavatel platce DPC
         if ($this->company->hasTax()) {
-            
-            // kodZbozi
-            $renderer->cell(40, $offsetHead, 360, 30, Strings::firstUpper($this->translator->translate("itemCatalog")),
-                function (Settings $settings) {
-                    $settings->fontColor = $this->grayColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->fontSize = 8;
-                    $settings->align = $settings::ALIGN_LEFT;
-                });
-            
-            // nazevPolozky
-            $renderer->cell(140, $offsetHead, 360, 30, Strings::firstUpper($this->translator->translate("itemName")),
-                function (Settings $settings) {
-                    $settings->fontColor = $this->grayColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->fontSize = 8;
-                    $settings->align = $settings::ALIGN_LEFT;
-                });
-            
+
             // dphSazba
-            $renderer->cell(560, $offsetHead, 40, 30, Strings::firstUpper($this->translator->translate("itemTax")),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: $this->configItems["itemTax"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemTax"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemTax")),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_CENTER;
-                });
-            
+                }
+            );
+
             // pocetJednotek
-            $renderer->cell(620, $offsetHead, 60, 30, Strings::firstUpper($this->translator->translate("itemCount")),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: $this->configItems["itemCount"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemCount"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemCount")),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_CENTER;
-                });
-            
-            
-            // mezisoucet
-            $renderer->cell(600, $offsetHead, 160, 30, Strings::firstUpper($this->translator->translate("itemUnitTotal")),
-                function (Settings $settings) {
+                }
+            );
+
+            // cenaJednotka
+            $renderer->cell(
+                x: $this->configItems["itemUnitPrice"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemUnitPrice"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitPrice")),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
-                });
-            
+                }
+            );
+
+            // mezisoucet
+            $renderer->cell(
+                x: $this->configItems["itemUnitTotal"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemUnitTotal"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitTotal")),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                }
+            );
+
         } else {
-            
-            // kodZbozi
-            $renderer->cell(40, $offsetHead, 360, 30, Strings::firstUpper($this->translator->translate("itemCatalog")),
-                function (Settings $settings) {
-                    $settings->fontColor = $this->grayColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->fontSize = 8;
-                    $settings->align = $settings::ALIGN_LEFT;
-                });
-            
-            // nazevPolozky
-            $renderer->cell(140, $offsetHead, 360, 30, Strings::firstUpper($this->translator->translate("itemName")),
-                function (Settings $settings) {
-                    $settings->fontColor = $this->grayColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->fontSize = 8;
-                    $settings->align = $settings::ALIGN_LEFT;
-                });
-            
+
             // pocetJednotek
-            $renderer->cell(620, $offsetHead, 60, 30, Strings::firstUpper($this->translator->translate("itemCount")),
-                function (Settings $settings) {
+            $renderer->cell(
+                x: $this->configItems["itemCount"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemCount"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemCount")),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_CENTER;
-                });
-            
-            
-            // mezisoucet
-            $renderer->cell(600, $offsetHead, 160, 30, Strings::firstUpper($this->translator->translate("itemUnitTotal")),
-                function (Settings $settings) {
+                }
+            );
+
+            // cenaJednotka
+            $renderer->cell(
+                x: $this->configItems["itemUnitPrice"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemUnitPrice"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitPrice")),
+                setCallback: function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
-                });
+                }
+            );
+
+            // mezisoucet
+            $renderer->cell(
+                x: $this->configItems["itemUnitTotal"]["x"],
+                y: $offsetHead,
+                width: $this->configItems["itemUnitTotal"]["y"],
+                height: $this->lineHeight,
+                text: Strings::firstUpper($this->translator->translate(message: "itemUnitTotal")),
+                setCallback: function (Settings $settings) {
+                    $settings->align = $settings::ALIGN_RIGHT;
+                }
+            );
         }
-        
+
     }
 
     /**
+     * Polozky
      * @param int $offset
      * @param array $items
      * @return int
      */
-    protected function buildItems(int $offset, array $items): int
-    {
-        
+    protected function buildItems(int $offset, array $items): int {
+
         $renderer = $this->renderer;
 
         /**
@@ -689,113 +1064,214 @@ final class PdfOrderDefault extends OutputStandard
         foreach ($items as $i => $item) {
 
             // radekBarva1
-            $renderer->rect(0, $offset, $renderer->width(), 27.0,
-                function (Settings $settings) use ($i) {
-                    $settings->setFillDrawColor($i % 2 === 1 ? $this->evenColor : $this->oddColor);
+            $renderer->rect(
+                x: 0,
+                y: $offset,
+                width: $renderer->width(),
+                height: $this->lineHeight,
+                setCallback: function (Settings $settings) use ($i) {
+                    $settings->setFillDrawColor(color: $i % 2 === 1 ? $this->evenColor : $this->oddColor);
                 });
 
             // radekBarva2
-            $renderer->rect(0, $offset + 27, $renderer->width(), 0.1,
-                function (Settings $settings) {
-                    $settings->setFillDrawColor($this->evenColor->darken(10));
+            $renderer->rect(
+                x:0,
+                y: $offset + $this->lineHeight,
+                width: $renderer->width(),
+                height: 0.1,
+                setCallback: function (Settings $settings) {
+                    $settings->setFillDrawColor(color: $this->evenColor->darken(percentage: 10));
                 });
-
 
             // katalogoveCislo
-            $catName = $item->getCatalogName();
-            $catLine = 17;
-            $catSize = Strings::length($catName);
+            $catalogName   = Strings::upper($item->getCatalogName());
+            $catalogLine   = $this->lineHeight;
+            $catalogWidth  = $this->configItems["itemCatalog"]["y"];
+            $catalogSize   = $renderer->textWidth(text: $catalogName);
+            $catalogLength = Strings::length($catalogName);
+            $catalogHeight = $this->lineHeight;
 
-            // kodPolozky
-            $renderer->cell(40, ($catSize > $catLine ? $offset : $offset + 15), 100, ($catSize > $catLine ? 12 : null), $catName,
-                function (Settings $settings) {
-                    $settings->fontFamily = "sans";
-                    $settings->fontColor = $this->fontColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontSize = 7;
-                });
+            if($renderer->textWidth(text:$catalogName) > $catalogWidth ) {
 
-            // nazevPolozky
-            $itemName  = $item->getName();
-            $itemSize  = Strings::length($itemName);
+                $catalogHeight = $catalogHeight / 2;
 
-            if($itemSize > 160) {
-                $itemName  = Strings::substring($itemName . "...", 0, 140);
+                $i = 0;
+
+                do {
+
+                    $catalogName = Strings::substring($catalogName, 0, $catalogLength - $i++);
+
+                } while (($renderer->textWidth(text: $catalogName)/2) > $catalogWidth);
+
             }
 
-            $itemLine  = 420;
-            $itemWidth = $renderer->textWidth($itemName);
+            // kodPozky
+            $renderer->cell(
+                x: $this->configItems["itemCatalog"]["x"],
+                y: $offset,
+                width: $this->configItems["itemCatalog"]["y"],
+                height: $catalogHeight,
+                text: $catalogName,
+                setCallback: function (Settings $settings) {
+                    $settings->fontColor = $this->grayColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                    $settings->fontSize = 7;
+                    $settings->align = $settings::ALIGN_LEFT;
+                }
+            );
 
             // nazevPolozky
-            $renderer->cell(140, $offset, 420, ($itemWidth > $itemLine ? 13 : 27), $itemName,
-                function (Settings $settings) {
-                    $settings->fontFamily = "sans";
-                    $settings->fontColor = $this->fontColor;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->align = $settings::ALIGN_LEFT;
-                    $settings->fontSize = 7;
-                });
+            $itemName   = Strings::firstUpper($item->getName());
+            $itemLine   = $this->lineHeight;
+            $itemWidth  = $this->configItems["itemName"]["y"];
+            $itemSize   = $renderer->textWidth(text: $itemName);
+            $itemLength = Strings::length($itemName);
+            $itemHeight = $this->lineHeight;
 
-            // pokud je dodavatel platce DPH
+            if($renderer->textWidth(text: $itemName) > $itemWidth) {
+
+                $itemHeight = $itemHeight / 2;
+                $i = 0;
+
+                do {
+
+                    $itemName = Strings::substring($itemName, 0, $itemLength - $i++);
+
+                } while (($renderer->textWidth(text: $itemName)/2) > $itemWidth);
+
+            }
+
+            // nazevPolozky
+            $renderer->cell(
+                x: $this->configItems["itemName"]["x"],
+                y: $offset,
+                width: $this->configItems["itemName"]["y"],
+                height: $itemHeight,
+                text: $itemName,
+                setCallback: function (Settings $settings) {
+                    $settings->fontColor = $this->grayColor;
+                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                    $settings->fontSize = 7;
+                    $settings->align = $settings::ALIGN_LEFT;
+                }
+            );
+
+            // pokud je dodavatel VAT
             if ($this->company->hasTax()) {
 
                 // dphSazba
-                $renderer->cell(560, $offset, 40, 27, $item->getTax() . "%",
-                    function (Settings $settings) {
+                $renderer->cell(
+                    x: $this->configItems["itemTax"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemTax"]["y"],
+                    height: $this->lineHeight,
+                    text: $item->getTax() . "%",
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_CENTER;
                         $settings->fontSize = 7;
-                    });
+                    }
+                );
 
-                // pocetJednotek (vcetne jednotky)
-                $renderer->cell(610, $offset, 80, 27, $this->formatter->formatNumber(number: $item->getAmount(), decimal: 0) . "x",
-                    function (Settings $settings) {
+                // pocetJednotek
+                $renderer->cell(
+                    x: $this->configItems["itemCount"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemCount"]["y"],
+                    height: $this->lineHeight,
+                    text: $this->formatter->formatNumber($item->getAmount(), 0) . "x",
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
                         $settings->align = $settings::ALIGN_CENTER;
                         $settings->fontSize = 7;
-                    });
+                    }
+                );
 
-                if($item->isSale()) {
+                // cenaJednotka
+                $renderer->cell(
+                    x: $this->configItems["itemUnitPrice"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemUnitPrice"]["y"],
+                    height: $this->lineHeight,
+                    text: $this->formatter->formatMoney(number: $item->getUnitPrice()),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->align = $settings::ALIGN_RIGHT;
+                        $settings->fontSize = 7;
+                    }
+                );
 
-                    // mezisoucet
-                    $renderer->cell(600, $offset, 160, 27, $this->formatter->formatMoney(number: $item->getPrice(), formatDecimal: true),
-                        function (Settings $settings) {
-                            $settings->align = $settings::ALIGN_RIGHT;
-                            $settings->fontSize = 7;
-                        });
+                // mezisoucet
+                $renderer->cell(
+                    x: $this->configItems["itemUnitTotal"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemUnitTotal"]["y"],
+                    height: $this->lineHeight,
+                    text: $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator), isStorno: $this->order->hasStorno()),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->align = $settings::ALIGN_RIGHT;
+                        $settings->fontSize = 7;
+                    }
+                );
 
-                } else {
-
-                    // mezisoucet
-                    $renderer->cell(600, $offset, 160, 27, $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator, useTax: true), formatDecimal: true),
-                        function (Settings $settings) {
-                            $settings->align = $settings::ALIGN_RIGHT;
-                            $settings->fontSize = 7;
-                        });
-                }
-
-
-                $offset += 27;
 
             }  else {
 
-                // pocetJednotek (vcetne jednotky)
-                $renderer->cell(610, $offset, 80, 27, $this->formatter->formatNumber(number: $item->getAmount(), decimal: 0) . "x",
-                    function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_CENTER;
-                    $settings->fontSize = 7;
-                });
+                // pocetJednotek
+                $renderer->cell(
+                    x: $this->configItems["itemCount"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemCount"]["y"],
+                    height: $this->lineHeight,
+                    text: $this->formatter->formatNumber($item->getAmount(), 0) . "x",
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->align = $settings::ALIGN_CENTER;
+                        $settings->fontSize = 7;
+                    }
+                );
+
+                // cenaJednotka
+                $renderer->cell(
+                    x: $this->configItems["itemUnitPrice"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemUnitPrice"]["y"],
+                    height: $this->lineHeight,
+                    text: $this->formatter->formatMoney(number: $item->getPrice()),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->align = $settings::ALIGN_RIGHT;
+                        $settings->fontSize = 7;
+                    }
+                );
 
                 // mezisoucet
-                $renderer->cell(600, $offset, 160, 27, $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator, useTax: true), formatDecimal: true),
-                    function (Settings $settings) {
-                    $settings->align = $settings::ALIGN_RIGHT;
-                    $settings->fontSize = 7;
-                });
+                $renderer->cell(
+                    x: $this->configItems["itemUnitTotal"]["x"],
+                    y: $offset,
+                    width: $this->configItems["itemUnitTotal"]["y"],
+                    height: $this->lineHeight,
+                    text: $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator, useTax: false), isStorno: $this->order->hasStorno()),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->align = $settings::ALIGN_RIGHT;
+                        $settings->fontSize = 7;
+                    }
+                );
 
-                $offset += 27;
             }
+
+            $offset += $this->lineHeight;
         }
-        
+
         return $offset;
     }
 
@@ -812,14 +1288,14 @@ final class PdfOrderDefault extends OutputStandard
         // qrkod - stav
         if($this->schema->hasUrlPath()) {
 
-            $renderer->addImage($this->schema->getUrlPath(), $half - 85, $offset);
+            $renderer->addImage(logo: $this->schema->getUrlPath(), x: $half - 85, y: $offset);
         }
 
         // dphSouhrny
         if($this->company->hasTax()) {
 
             //  dph sazby
-            $vatLines = $this->order->getVatLines($this->company->hasTax());
+            $vatLines = $this->order->getVatLines(useTax: $this->company->hasTax());
 
             //  dph sazby
             if(count($vatLines) > 0) {
@@ -830,21 +1306,32 @@ final class PdfOrderDefault extends OutputStandard
                     $dphBase += $val;
 
                     // dphSazba
-                    $renderer->cell(420, $offset, $half, 15, sprintf("%s %s %s", $this->translator->translate("vatRate"), $key, "%"),
-                        function (Settings $settings) {
-                            $settings->fontFamily = "sans";
+                    $renderer->cell(
+                        x: 420,
+                        y: $offset,
+                        width: $half,
+                        height: 15,
+                        text: sprintf("%s %s %s", $this->translator->translate(message: "vatRate"), $key, "%"),
+                        setCallback: function (Settings $settings) {
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                            $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_LEFT;
-                        });
+                        }
+                    );
 
                     // dphHodnota
-                    $renderer->cell(640, $offset, $half, 15, $this->formatter->formatMoney(number: $val, formatDecimal: true),
-                        function (Settings $settings) {
-                            $settings->fontFamily = "sans";
+                    $renderer->cell(
+                        x: 640,
+                        y: $offset,
+                        width: $half,
+                        height: 15,
+                        text: $this->formatter->formatMoney(number: $val, formatDecimal: true),
+                        setCallback: function (Settings $settings) {
                             $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_RIGHT;
-                        });
+                        }
+                    );
 
                     $offset += 15;
                 }
@@ -855,59 +1342,82 @@ final class PdfOrderDefault extends OutputStandard
                     $offset += 5;
 
                     // dphSazba
-                    $renderer->cell(420, $offset, $half, 15, $this->translator->translate("summaryTaxBase"),
-                        function (Settings $settings) {
-                            $settings->fontFamily = "sans";
+                    $renderer->cell(
+                        x: 420,
+                        y: $offset,
+                        width: $half,
+                        height: 15,
+                        text: $this->translator->translate(message: "summaryTaxBase"),
+                        setCallback: function (Settings $settings) {
+                            $settings->fontColor = $this->fontColor;
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
                             $settings->align = $settings::ALIGN_LEFT;
-                        });
+                        }
+                    );
 
                     // dphHodnota
-                    $renderer->cell(640, $offset, $half, 15, $this->formatter->formatMoney(number: ($this->order->getTotalPrice($this->calculator, $this->company->hasTax()) - $dphBase), isTotal: false),
-                        function (Settings $settings) {
-                            $settings->fontFamily = "sans";
+                    $renderer->cell(
+                        x: 640,
+                        y: $offset,
+                        width: $half,
+                        height: 15,
+                        text: $this->formatter->formatMoney(number: ($this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax()) - $dphBase), isTotal: false),
+                        setCallback: function (Settings $settings) {
                             $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
                             $settings->align = $settings::ALIGN_RIGHT;
-                        });
+                        }
+                    );
+
 
                     $offset += 15;
                 }
 
                 if((float) $dphBase > 0) {
 
-                    $totalGoods    = $this->order->getTotalPrice($this->calculator, $this->company->hasTax());
+                    $totalGoods = $this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax());
 
                     if($this->order->getPayment()->getCurrency() === "EUR") {
 
-                        $articleTotal  = round(num: $totalGoods, precision: 1);
+                        $articleTotal = round(num: $totalGoods, precision: 1);
 
                     } else {
 
-                        $articleTotal  = round(num: $totalGoods);
+                        $articleTotal = round(num: $totalGoods);
                     }
 
                     $articleHaller = round(num: ($articleTotal - $totalGoods), precision: 3);
 
-
                     if($articleHaller !== 0.0) {
 
                         // dphSazba
-                        $renderer->cell(420, $offset, $half, 15, $this->translator->translate("summaryRounding"),
-                            function (Settings $settings) {
-                                $settings->fontFamily = "sans";
+                        $renderer->cell(
+                            x: 420,
+                            y: $offset,
+                            width: $half,
+
+                            height: 15,
+                            text: $this->translator->translate(message: "summaryRounding"),
+                            setCallback: function (Settings $settings) {
+                                $settings->fontColor = $this->fontColor;
                                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
                                 $settings->align = $settings::ALIGN_LEFT;
-                            });
+                            }
+                        );
 
                         // dphHodnota
-                        $renderer->cell(640, $offset, $half, 15, $this->formatter->formatMoney(number: $articleHaller, isTotal: false),
-                            function (Settings $settings) {
-                                $settings->fontFamily = "sans";
+                        $renderer->cell(
+                            x: 640,
+                            y: $offset,
+                            width: $half,
+                            height: 15,
+                            text: $this->formatter->formatMoney(number: $articleHaller, isTotal: false),
+                            setCallback: function (Settings $settings) {
                                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                                 $settings->fontColor = $this->fontColor;
                                 $settings->align = $settings::ALIGN_RIGHT;
-                            });
+                            }
+                        );
 
                         $offset += 15;
                     }
@@ -918,35 +1428,56 @@ final class PdfOrderDefault extends OutputStandard
         }
 
         // primarniBarva
-        $renderer->rect(420, $offset, $renderer->width(), 24,
-            function (Settings $settings) {
-                $settings->setFillDrawColor($this->primaryColor);
-            });
-                
-            $renderer->cell(425, $offset, $half, 24, $this->translator->translate("totalPrice"), function (Settings $settings) {
-                $settings->fontFamily = "sans";
+        $renderer->rect(
+            x: 420,
+            y: $offset,
+            width: $renderer->width(),
+            height: 24,
+            setCallback: function (Settings $settings) {
+                $settings->setFillDrawColor(color: $this->primaryColor);
+            }
+        );
+
+        // celkovaCena - popisek
+        $renderer->cell(
+            x: 425,
+            y: $offset,
+            width: $half,
+            height: 24,
+            text: $this->translator->translate(message: "totalPrice"),
+            setCallback: function (Settings $settings) {
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->align = $settings::ALIGN_LEFT;
                 $settings->fontColor = $this->whiteColor;
                 $settings->fontSize = 8;
-            });
+            }
+        );
 
-            $totalPrice = $this->order->getTotalPrice($this->calculator, $this->company->hasTax());
-            $salesPrice = $this->order->getSalesPrice($this->calculator);
-            $finalPrice = ($totalPrice + $salesPrice);
+        $totalPrice = $this->order->getTotalPrice($this->calculator, $this->company->hasTax());
+        $salesPrice = $this->order->getSalesPrice($this->calculator);
+        $finalPrice = ($totalPrice + $salesPrice);
 
-            $renderer->cell(640, $offset, $half, 24, $this->formatter->formatMoney(number: $finalPrice, isTotal: true),
-                function (Settings $settings) {
-                $settings->fontFamily = "sans";
+        // celkovaCena - hodnota
+        $renderer->cell(
+            x: 600,
+            y: $offset,
+            width: $half + 40,
+            height: 24,
+            text: $this->formatter->formatMoney(number: $finalPrice, isTotal: true),
+            setCallback: function (Settings $settings) {
                 $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                 $settings->fontColor = $this->whiteColor;
-                $settings->fontSize = 10;
+                $settings->fontSize = 9;
                 $settings->align = $settings::ALIGN_RIGHT;
-            });
-            
-            // stamp
-            if($this->schema->hasStampPath()) {
-                $renderer->addImage($this->schema->getStampPath(), 500 + $half, $offset + 42, 148);
             }
+        );
+
+        // stamp
+        if($this->schema->hasStampPath()) {
+
+            $renderer->addImage(logo: $this->schema->getStampPath(), x: 500 + $half, y: $offset + 42, width: 148);
+        }
+
     }
 
 

@@ -29,16 +29,6 @@ class Order
     private bool $isPaid = false;
 
     /**
-     * @var bool
-     */
-    private bool $hasCatalogColumn = true;
-
-    /**
-     * @var bool
-     */
-    private bool $hasAmountVolume = true;
-
-    /**
      * @var string|null
      */
     private ?string $message = null;
@@ -116,56 +106,6 @@ class Order
         return $this->isPaid;
     }
 
-    /**
-     * @return $this
-     */
-    public function enableCatalogColumn(): static
-    {
-
-        $this->hasCatalogColumn = true;
-
-        return $this;
-    }
-
-    /**
-     * @return $this
-     */
-    public function disableCatalogColumn(): static
-    {
-
-        $this->hasCatalogColumn = false;
-
-        return $this;
-    }
-
-    /**
-     * @return $this
-     */
-    public function disableAmountVolume(): static
-    {
-
-        $this->hasAmountVolume = false;
-
-        return $this;
-    }
-
-    /**
-     * @return bool
-     */
-    public function hasCatalogColumn(): bool
-    {
-
-        return $this->hasCatalogColumn;
-    }
-
-    /**
-     * @return bool
-     */
-    public function hasAmountVolume(): bool
-    {
-
-        return $this->hasAmountVolume;
-    }
 
     /**
      * @param string $name

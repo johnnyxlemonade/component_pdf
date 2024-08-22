@@ -29,6 +29,7 @@ final class BasicTranslator
      */
     private static array $data = [
         "cs" => [
+            "orderIdentificator" => "Identifikátor objednávky: ",
             "documentInvoice" => "Faktura",
             "documentInvoiceId" => "Faktura číslo",
             "documentInvoiceProforma" => "Proforma",
@@ -86,6 +87,7 @@ final class BasicTranslator
             "summaryRounding" => "Zaokrouhlení",
         ],
         "en" => [
+            "orderIdentificator" => "Order identifier: ",
             "documentInvoice" => "Invoice",
             "documentInvoiceId" => "Invoice number",
             "documentInvoiceProforma" => "Proforma Inv.",
@@ -143,6 +145,7 @@ final class BasicTranslator
             "summaryRounding" => "Rounding",
         ],
         "de" => [
+            "orderIdentificator" => "Bestellkennung: ",
             "documentInvoice" => "Rechnung",
             "documentInvoiceId" => "Rechnungsnummer",
             "documentInvoiceProforma" => "Proforma-Rech.",
@@ -153,7 +156,7 @@ final class BasicTranslator
             "documentStorno" => "Korrektur",
             "documentDescription" => "Steuerdokument",
             "documentNoDph" => "ist kein Steuerdokument",
-            "bodyBefore" => "Wir erstatten Ihnen den vollen Betrag für das Dokument %s.",
+            "bodyBefore" => "Wir erstatten Ihnen den vollen Betrag für das Dokument.",
             "bodyBeforeStorno" => "Rücksendenummer %s für das Dokument %s",
             "orderBefore" => "Liste der bestellten Artikel",
             "footerText" => "Der Unternehmer ist im Handelsregister eingetragen",
