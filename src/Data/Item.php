@@ -18,6 +18,11 @@ class Item
     protected array $taxData = [];
 
     /**
+     * @var array<string, int|float>
+     */
+    protected array $taxSale = [];
+
+    /**
      * @var float|null
      */
     protected float|null $totalPrice = null;
@@ -48,6 +53,10 @@ class Item
         if(!$this->isSale) {
 
             $this->taxData = $this->_taxUnit(price: $price, amount: $amount, vatRate: $vatRate);
+
+        } else {
+
+            $this->taxSale = $this->_taxUnit(price: $price, amount: $amount, vatRate: $vatRate);
         }
 
     }
@@ -103,7 +112,7 @@ class Item
     public function getUnitPrice(): mixed
     {
 
-        return $this->taxData["unitPrice"];
+        return ($this->taxSale["unitPrice"] ?? $this->taxData["unitPrice"]);
     }
 
     /**

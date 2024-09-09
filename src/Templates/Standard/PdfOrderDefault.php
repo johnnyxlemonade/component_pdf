@@ -1180,7 +1180,7 @@ final class PdfOrderDefault extends OutputStandard
                     y: $offset,
                     width: $this->configItems["itemCount"]["y"],
                     height: $this->lineHeight,
-                    text: $this->formatter->formatNumber($item->getAmount(), 0) . "x",
+                    text: $this->formatter->formatNumber(number: $item->getAmount(), decimal: 0) . "x",
                     setCallback: function (Settings $settings) {
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
@@ -1210,7 +1210,7 @@ final class PdfOrderDefault extends OutputStandard
                     y: $offset,
                     width: $this->configItems["itemUnitTotal"]["y"],
                     height: $this->lineHeight,
-                    text: $this->formatter->formatMoney(number: $item->getTotalPrice(calculator: $this->calculator), isStorno: $this->order->hasStorno()),
+                    text: $this->formatter->formatMoney(number: ($item->isSale() ? $item->getPrice() : $item->getTotalPrice(calculator: $this->calculator)), isStorno: $this->order->hasStorno()),
                     setCallback: function (Settings $settings) {
                         $settings->fontColor = $this->fontColor;
                         $settings->fontStyle = $settings::FONT_STYLE_NONE;
