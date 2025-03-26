@@ -4,8 +4,8 @@
   "authors": [
     {
       "name": "Honza Mudrak",
-      "email": "honza@core1.agency",
-      "homepage": "https://core1.agency"
+      "email": "honzamudrak@gmail.com",
+      "homepage": "https://github.com/johnnyxlemonade"
     }
   ],
   "autoload": {
@@ -26,5 +26,3 @@
     "ext-gd": "*"
   }
 }
-
-
