@@ -1,0 +1,26 @@
+name: ❓ Dotaz / Diskuze
+description: Máš otázku, potřebuješ poradit nebo chceš něco probrat?
+title: "[OTÁZKA] - "
+labels: [question]
+body:
+  - type: textarea
+    attributes:
+      label: S čím potřebuješ pomoct?
+      description: Popiš svůj dotaz, případně co ti není jasné
+      placeholder: "Např. Jak přesně funguje XYZ? / Můžu použít projekt i pro...?"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Co jsi zkusil(a)?
+      description: Uveď, co jsi už vyzkoušel(a), nebo kde ses snažil(a) najít odpověď
+      placeholder: "Např. Hledal jsem v dokumentaci, zkusil jsem název funkce..."
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Konkrétní část projektu (nepovinné)
+      description: O které části repozitáře se dotaz týká
+      placeholder: "Např. PDF komponenta, export, generování..."

@@ -1,0 +1,26 @@
+name: 🐞 Hlášení chyby
+description: Nahlášení chyby nebo nefunkční části
+title: "[BUG] - "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: Popis chyby
+      description: Co přesně nefunguje? Co jsi očekával(a), co se stalo?
+      placeholder: "Např. Po kliknutí na tlačítko se nic nestane..."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Co jsi dělal(a) před chybou?
+      description: Jaký byl krok nebo akce, která vedla k problému?
+      placeholder: "Např. otevřel jsem stránku, kliknul na XY..."
+    validations:
+      required: false
+
+  - type: input
+    attributes:
+      label: Verze / Prostředí (nepovinné)
+      description: Verze, OS, prohlížeč, cokoliv užitečného
+      placeholder: "Např. Windows 11, Chrome 121"

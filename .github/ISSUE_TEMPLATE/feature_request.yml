@@ -1,0 +1,28 @@
+name: ✨ Návrh nové funkce
+description: Navrhni novou funkci nebo zlepšení
+title: "[FEATURE] - "
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Popis návrhu
+      description: Co bys chtěl(a) přidat nebo vylepšit?
+      placeholder: "Např. Přidat možnost exportu do PDF..."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Jak by to mělo fungovat?
+      description: Popiš konkrétní návrh funkčnosti
+      placeholder: "Např. Tlačítko vpravo nahoře, které zavolá funkci XY..."
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Proč je to užitečné?
+      description: Vysvětli, proč by to pomohlo ostatním
+      placeholder: "Např. Uživatelé si budou moci rychle vytisknout výsledky..."
+    validations:
+      required: false
