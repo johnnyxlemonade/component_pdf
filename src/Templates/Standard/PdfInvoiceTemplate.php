@@ -104,7 +104,6 @@ final class PdfInvoiceTemplate extends OutputStandard
             
             // prvniStrana
             if (!$paginator->isFirstPage()) {
-
                 $this->renderer->addPage();                                           
             } 
             
@@ -344,7 +343,7 @@ final class PdfInvoiceTemplate extends OutputStandard
                 y: $positionY + ($multiplier * 20),
                 width: 1,
                 height: null,
-                text: $this->company->getTin(),
+                text: $this->company->getVaTin(),
                 setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
                     $settings->fontColor = $this->fontColor;
@@ -456,71 +455,64 @@ final class PdfInvoiceTemplate extends OutputStandard
         $multiplier = 0;
         
         // odberatelICO
-        if ($this->customerBilling->getTin()) {
-            
-            // odberatelIcoNazev
-            $renderer->cell(
-                x: 420,
-                y: $positionY,
-                width: 1,
-                height: null,
-                text: $this->translator->translate(message: "vatName"),
-                setCallback: function (Settings $settings) {
-                    $settings->fontSize = 8;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->align = $settings::ALIGN_LEFT;
-                }
-            );
-            
-            // odberatelIcoHodnota
-            $renderer->cell(
-                x: 760,
-                y: $positionY,
-                width: 1,
-                height: null,
-                text: $this->customerBilling->getTin(),
-                setCallback: function (Settings $settings) {
-                    $settings->fontSize = 8;
-                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                    $settings->align = $settings::ALIGN_RIGHT;
-                }
-            );
-            
-            $multiplier++;
-        }
+        // odberatelIcoNazev
+        $renderer->cell(
+            x: 420,
+            y: $positionY,
+            width: 1,
+            height: null,
+            text: $this->translator->translate(message: "vatName"),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 8;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
+
+        // odberatelIcoHodnota
+        $renderer->cell(
+            x: 760,
+            y: $positionY,
+            width: 1,
+            height: null,
+            text: ($this->customerBilling->getTin() ?? "------------"),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 8;
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                $settings->align = $settings::ALIGN_RIGHT;
+            }
+        );
+
+        $multiplier++;
         
         // odberatelDIC
-        if ($this->customerBilling->getVaTin()) {
-            
-            // odberatelDicNazev
-            $renderer->cell(
-                x: 420,
-                y: $positionY + ($multiplier * 20),
-                width: 1,
-                height: null,
-                text: $this->translator->translate(message: "vaTinName"),
-                setCallback: function (Settings $settings) {
-                    $settings->fontSize = 8;
-                    $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                    $settings->align = $settings::ALIGN_LEFT;
-                }
-            );
-            
-            // odberatelDicHodnota
-            $renderer->cell(
-                x: 760,
-                y: $positionY + ($multiplier * 20),
-                width: 1,
-                height: null,
-                text: $this->customerBilling->getVaTin(),
-                setCallback: function (Settings $settings) {
-                    $settings->fontSize = 8;
-                    $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                    $settings->align = $settings::ALIGN_RIGHT;
-                }
-            );
+        // odberatelDicNazev
+        $renderer->cell(
+            x: 420,
+            y: $positionY + ($multiplier * 20),
+            width: 1,
+            height: null,
+            text: $this->translator->translate(message: "vaTinName"),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 8;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
 
-        }
+        // odberatelDicHodnota
+        $renderer->cell(
+            x: 760,
+            y: $positionY + ($multiplier * 20),
+            width: 1,
+            height: null,
+            text: ($this->customerBilling->getVaTin() ?? "------------"),
+            setCallback: function (Settings $settings) {
+                $settings->fontSize = 8;
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                $settings->align = $settings::ALIGN_RIGHT;
+            }
+        );
         
     }
 
