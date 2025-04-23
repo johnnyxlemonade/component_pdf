@@ -113,22 +113,20 @@ final class PdfInvoiceTemplate extends OutputStandard
             $this->buildSubscriberBox();
             $this->buildPaymentBox();
             $this->buildVerticalLine();
-            
-            
+
             $offset = 380;
             $this->buildBody(offsetHead: $offset, offsetBody: 30);
             $offset = $this->buildItems(offset: $offset + 35, items: $paginator->getItems());
 
             // posledniStrana
             if ($paginator->isLastPage()) {
-
                 $this->buildTotal();
             }
                         
             // footerText - rejstrik
             $renderer->cell(
                 x: 0,
-                y: - 40,
+                y: -30,
                 width: $this->renderer->width(),
                 height: null,
                 text: Strings::firstUpper($this->company->getFileNumberDesc() ?? $this->translator->translate(message: "footerText")),
@@ -783,7 +781,7 @@ final class PdfInvoiceTemplate extends OutputStandard
         }
         
         // vpravo - datum zdan. plneni
-        if ($this->order->getDueDate() !== null) {
+        if ($this->order->getTaxDate() !== null) {
             
             // plneniNazev
             $renderer->cell(
@@ -800,8 +798,8 @@ final class PdfInvoiceTemplate extends OutputStandard
                 }
                 );
             
-            // plneniHodnota
-            $renderer->cell(760, 325, 1, null, $this->formatter->formatDate($this->order->getDueDate()),
+            // datum zdan. plneni hodnota
+            $renderer->cell(760, 325, 1, null, $this->formatter->formatDate($this->order->getTaxDate()),
                 function (Settings $settings) {
                     $settings->align = $settings::ALIGN_RIGHT;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
@@ -1226,90 +1224,110 @@ final class PdfInvoiceTemplate extends OutputStandard
      */
     protected function buildTotal(): void
     {
-        
         $renderer = $this->renderer;
         $half = ($renderer->width() - 553) / 2;
+        $offset = $renderer->y() + ceil($this->lineHeight / 2);
 
-        $offset = $renderer->y() + $this->lineHeight;
-        
-        // QRplatba - nebo uhrazeno - pouze pokud neni storno
-        if(!$this->order->hasStorno()) {
-            if($this->order->isPaid()) {
-                
-                if(!empty($paid = $this->schema->getPaidImage($this->translator->getCode()))) {
-                    
-                    $renderer->filterAlpha(alpha: 0.5);
-                    $renderer->addImage(logo: $paid, x: $half - 85, y: $offset + 30, width: 320);
-                    $renderer->filterAlpha(alpha: 1);
-                }
-                
-            } else {
-                
-                if($this->schema->hasCodePath()) {
-                    
-                    $renderer->addImage(logo: $this->schema->getCodePath(), x: $half - 90, y: $offset, width: 140);
-                }
-                
-            }
-            
+        $offsetTotalStart = $offset;
+
+        if ($this->company->hasTax()) {
+            $offset = $this->renderVatSummary(offset: $offset, half: $half);
         }
 
-        // dphSouhrny
-        if($this->company->hasTax()) {
+        $offsetTotal = $offset;
+        $this->renderTotalBlock(offset: $offsetTotal, half: $half);
+        $this->renderQrAndStamp(offset: $offsetTotalStart);
+    }
 
-            //  dph sazby
-            $vatLines = $this->order->getVatLines(useTax: $this->company->hasTax());
+    /**
+     * @param float|int $offset
+     * @param float|int $half
+     * @return float|int
+     */
+    protected function OOOrenderVatSummary(float|int $offset, float|int $half): float|int
+    {
+        $renderer = $this->renderer;
+        $vatLines = $this->order->getVatLines(useTax: true, displayZero: false);
 
-            //  dph sazby
-            if(count($vatLines) > 0) {
+        if (count($vatLines) > 0) {
+            $dphBase = 0;
 
-                $dphBase = 0;
+            foreach ($vatLines as $key => $val) {
+                $dphBase += $val;
 
-                foreach($vatLines as $key => $val) {
-                    $dphBase += $val;
+                $renderer->cell(
+                    x: 420,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: sprintf("%s %s %%", $this->translator->translate(message: "vatRate"), $key),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->fontColor = $this->fontColor;
+                        $settings->align = $settings::ALIGN_LEFT;
+                    }
+                );
 
-                    // dphSazba
+                $renderer->cell(
+                    x: 640,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: $this->formatter->formatMoney(number: $val, formatDecimal: true),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                        $settings->fontColor = $this->fontColor;
+                        $settings->align = $settings::ALIGN_RIGHT;
+                    }
+                );
+
+                $offset += 15;
+            }
+
+            if ($dphBase > 0) {
+                $offset += 5;
+
+                $renderer->cell(
+                    x: 420,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: $this->translator->translate(message: "summaryTaxBase"),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                        $settings->align = $settings::ALIGN_LEFT;
+                    }
+                );
+
+                $renderer->cell(
+                    x: 640,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: $this->formatter->formatMoney(number: $this->order->getTotalPrice(calculator: $this->calculator, useTax: true) - $dphBase),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontColor = $this->fontColor;
+                        $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                        $settings->align = $settings::ALIGN_RIGHT;
+                    }
+                );
+
+                $offset += 15;
+
+                $totalGoods = $this->order->getTotalPrice(calculator: $this->calculator, useTax: true);
+                $articleTotal = $this->order->getPayment()->getCurrency() === "EUR"
+                    ? round($totalGoods, 1)
+                    : round($totalGoods);
+                $articleHaller = round($articleTotal - $totalGoods, 3);
+
+                if ($articleHaller !== 0.0) {
                     $renderer->cell(
                         x: 420,
                         y: $offset,
                         width: $half,
                         height: 15,
-                        text: sprintf("%s %s %s", $this->translator->translate(message: "vatRate"), $key, "%"),
-                        setCallback: function (Settings $settings) {
-                            $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                            $settings->align = $settings::ALIGN_LEFT;
-                        }
-                    );
-
-                    // dphHodnota
-                    $renderer->cell(
-                        x: 640,
-                        y: $offset,
-                        width: $half,
-                        height: 15,
-                        text: $this->formatter->formatMoney(number: $val, formatDecimal: true),
-                        setCallback: function (Settings $settings) {
-                            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                            $settings->fontColor = $this->fontColor;
-                            $settings->align = $settings::ALIGN_RIGHT;
-                        }
-                    );
-
-                    $offset += 15;
-                }
-
-                // bez DPH celkem
-                if((float) $dphBase > 0) {
-
-                    $offset += 5;
-
-                    // dphSazba
-                    $renderer->cell(
-                        x: 420,
-                        y: $offset,
-                        width: $half,
-                        height: 15,
-                        text: $this->translator->translate(message: "summaryTaxBase"),
+                        text: $this->translator->translate(message: "summaryRounding"),
                         setCallback: function (Settings $settings) {
                             $settings->fontColor = $this->fontColor;
                             $settings->fontStyle = $settings::FONT_STYLE_NONE;
@@ -1317,124 +1335,267 @@ final class PdfInvoiceTemplate extends OutputStandard
                         }
                     );
 
-                    // dphHodnota
                     $renderer->cell(
                         x: 640,
                         y: $offset,
                         width: $half,
                         height: 15,
-                        text: $this->formatter->formatMoney(number: ($this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax()) - $dphBase), isTotal: false),
+                        text: $this->formatter->formatMoney(number: $articleHaller),
                         setCallback: function (Settings $settings) {
-                            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->fontColor = $this->fontColor;
+                            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
                             $settings->align = $settings::ALIGN_RIGHT;
                         }
                     );
 
                     $offset += 15;
-                }
-
-                if((float) $dphBase > 0) {
-
-                    $totalGoods = $this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax());
-
-                    if($this->order->getPayment()->getCurrency() === "EUR") {
-
-                        $articleTotal = round(num: $totalGoods, precision: 1);
-
-                    } else {
-
-                        $articleTotal = round(num: $totalGoods);
-                    }
-
-                    $articleHaller = round(num: ($articleTotal - $totalGoods), precision: 3);
-
-
-                    if($articleHaller !== 0.0) {
-
-                        // dphSazba
-                        $renderer->cell(
-                            x: 420,
-                            y: $offset,
-                            width: $half,
-
-                            height: 15,
-                            text: $this->translator->translate(message: "summaryRounding"),
-                            setCallback: function (Settings $settings) {
-                                $settings->fontColor = $this->fontColor;
-                                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                                $settings->align = $settings::ALIGN_LEFT;
-                            }
-                        );
-
-                        // dphHodnota
-                        $renderer->cell(
-                            x: 640,
-                            y: $offset,
-                            width: $half,
-                            height: 15,
-                            text: $this->formatter->formatMoney(number: $articleHaller, isTotal: false),
-                            setCallback: function (Settings $settings) {
-                                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                                $settings->fontColor = $this->fontColor;
-                                $settings->align = $settings::ALIGN_RIGHT;
-                            }
-                        );
-
-                        $offset += 15;
-                    }
                 }
 
                 $offset += 10;
             }
         }
 
-        
-        // primarniBarva
+        return $offset;
+    }
+
+    /**
+     * @param float|int $offset
+     * @param float|int $half
+     * @return float|int
+     */
+    protected function renderVatSummary(float|int $offset, float|int $half): float|int
+    {
+        $vatLines = $this->order->getVatLines(useTax: true, displayZero: false);
+
+        if (count($vatLines) > 0) {
+            $dphBase = 0;
+
+            foreach ($vatLines as $key => $val) {
+                $offset = $this->renderVatLine(offset: $offset, half: $half, key: $key, val: $val);
+                $dphBase += $val;
+            }
+
+            if ($dphBase > 0) {
+                $offset = $this->renderVatBase(offset: $offset, half: $half, dphBase: $dphBase);
+                $offset = $this->renderRounding(offset: $offset, half: $half, totalGoods: $this->order->getTotalPrice(calculator: $this->calculator, useTax: true), dphBase: $dphBase);
+            }
+
+            $offset += 10;
+        }
+
+        return $offset;
+    }
+
+    /**
+     * @param float|int $offset
+     * @param float|int $half
+     * @param float|int $dphBase
+     * @return float|int
+     */
+    protected function renderVatBase(float|int $offset, float|int $half, float|int $dphBase): float|int
+    {
+        $offset += 5;
+
+        $this->renderer->cell(
+            x: 420,
+            y: $offset,
+            width: $half,
+            height: 15,
+            text: $this->translator->translate(message: "summaryTaxBase"),
+            setCallback: function (Settings $settings) {
+                $settings->fontColor = $this->fontColor;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
+
+        $this->renderer->cell(
+            x: 640,
+            y: $offset,
+            width: $half,
+            height: 15,
+            text: $this->formatter->formatMoney(number: $this->order->getTotalPrice(calculator: $this->calculator, useTax: true) - $dphBase),
+            setCallback: function (Settings $settings) {
+                $settings->fontColor = $this->fontColor;
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                $settings->align = $settings::ALIGN_RIGHT;
+            }
+        );
+
+        return $offset + 15;
+    }
+
+    /**
+     * @param float|int $offset
+     * @param float|int $half
+     * @param float|int $totalGoods
+     * @param float|int $dphBase
+     * @return float|int
+     */
+    protected function renderRounding(float|int $offset, float|int $half, float|int $totalGoods, float|int $dphBase): float|int
+    {
+        $articleTotal = $this->order->getPayment()->getCurrency() === "EUR"
+            ? round($totalGoods, 1)
+            : round($totalGoods);
+
+        $articleHaller = round($articleTotal - $totalGoods, 3);
+
+        if ($articleHaller === 0.0) {
+            return $offset;
+        }
+
+        $this->renderer->cell(
+            x: 420,
+            y: $offset,
+            width: $half,
+            height: 15,
+            text: $this->translator->translate(message: "summaryRounding"),
+            setCallback: function (Settings $settings) {
+                $settings->fontColor = $this->fontColor;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
+
+        $this->renderer->cell(
+            x: 640,
+            y: $offset,
+            width: $half,
+            height: 15,
+            text: $this->formatter->formatMoney(number: $articleHaller),
+            setCallback: function (Settings $settings) {
+                $settings->fontColor = $this->fontColor;
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                $settings->align = $settings::ALIGN_RIGHT;
+            }
+        );
+
+        return $offset + 15;
+    }
+
+    /**
+     * @param float|int $offset
+     * @param float|int $half
+     * @param string|int $key
+     * @param float|int $val
+     * @return float|int
+     */
+    protected function renderVatLine(float|int $offset, float|int $half, string|int $key, float|int $val): float|int
+    {
+        $this->renderer->cell(
+            x: 420,
+            y: $offset,
+            width: $half,
+            height: 15,
+            text: sprintf("%s %s %%", $this->translator->translate(message: "vatRate"), $key),
+            setCallback: function (Settings $settings) {
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+                $settings->fontColor = $this->fontColor;
+                $settings->align = $settings::ALIGN_LEFT;
+            }
+        );
+
+        $this->renderer->cell(
+            x: 640,
+            y: $offset,
+            width: $half,
+            height: 15,
+            text: $this->formatter->formatMoney(number: $val, formatDecimal: true),
+            setCallback: function (Settings $settings) {
+                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
+                $settings->fontColor = $this->fontColor;
+                $settings->align = $settings::ALIGN_RIGHT;
+            }
+        );
+
+        return $offset + 15;
+    }
+
+    /**
+     * @param float|int $offset
+     * @param float|int $half
+     * @return void
+     */
+    protected function renderTotalBlock(float|int $offset, float|int $half): void
+    {
+        $renderer = $this->renderer;
+
         $renderer->rect(
             x: 420,
             y: $offset,
             width: $renderer->width(),
             height: 24,
-            setCallback: function (Settings $settings) {
-                $settings->setFillDrawColor(color: $this->primaryColor);
-            }
+            setCallback: fn(Settings $s) => $s->setFillDrawColor(color: $this->primaryColor)
         );
-        
-        // celkovaCena - popisek
+
         $renderer->cell(
             x: 425,
             y: $offset,
             width: $half,
             height: 24,
             text: $this->translator->translate(message: "totalPrice"),
-            setCallback: function (Settings $settings) {
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontSize = 8;
+            setCallback: function (Settings $s) {
+                $s->fontStyle = $s::FONT_STYLE_BOLD;
+                $s->align = $s::ALIGN_LEFT;
+                $s->fontColor = $this->whiteColor;
+                $s->fontSize = 8;
             }
         );
-        
-        // celkovaCena - hodnota
+
         $renderer->cell(
             x: 600,
             y: $offset,
             width: $half + 40,
             height: 24,
-            text: $this->formatter->formatMoney(number: $this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax()), isStorno: $this->order->hasStorno()),
-            setCallback: function (Settings $settings) {
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontSize = 9;
-                $settings->align = $settings::ALIGN_RIGHT;
+            text: $this->formatter->formatMoney(number: $this->order->getTotalPrice(calculator: $this->calculator, useTax: true), isStorno: $this->order->hasStorno()),
+            setCallback: function (Settings $s) {
+                $s->fontStyle = $s::FONT_STYLE_BOLD;
+                $s->fontColor = $this->whiteColor;
+                $s->fontSize = 9;
+                $s->align = $s::ALIGN_RIGHT;
             }
         );
-        
-        // stamp
-        if($this->schema->hasStampPath()) {
-            
-            $renderer->addImage(logo: $this->schema->getStampPath(), x: 500 + $half, y: $offset + 42, width: 148);
+    }
+
+    /**
+     * @param float|int $offset
+     * @return void
+     */
+    protected function renderQrAndStamp(float|int $offset): void
+    {
+        if ($this->order->hasStorno()) {
+            return;
+        }
+
+        $renderer = $this->renderer;
+
+        $qrWidth = 100;
+        $stampWidth = 120;
+        $spaceBetween = 20;
+
+        $qrX = 35;
+        $stampX = $qrX + $qrWidth + $spaceBetween;
+        $qrY = $offset;
+        $stampY = $qrY;
+
+        if ($stampX + $stampWidth > $renderer->width()) {
+            $stampX = $renderer->width() - $stampWidth - 20;
+        }
+
+        if ($this->order->isPaid()) {
+            if (!empty($paid = $this->schema->getPaidImage($this->translator->getCode()))) {
+                $renderer->filterAlpha(alpha: 0.5);
+                $renderer->addImage(logo: $paid, x: $qrX, y: $qrY, width: $qrWidth);
+                $renderer->filterAlpha(alpha: 1);
+            }
+        } elseif ($this->schema->hasCodePath()) {
+            $renderer->addImage(logo: $this->schema->getCodePath(), x: $qrX, y: $qrY, width: $qrWidth);
+        }
+
+        if ($this->schema->hasStampPath()) {
+            if (!empty($stampFile = $this->schema->getStampPath())) {
+                $renderer->addImage(logo: $stampFile, x: $stampX, y: $stampY, width: $stampWidth);
+            }
         }
     }
 

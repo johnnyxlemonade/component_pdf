@@ -43,24 +43,28 @@ class Order
      */
     private ?string $webName = null;
 
+
     /**
      * @param Account $account
      * @param Payment $payment
      * @param DateTime $created
      * @param DateTime|null $dueDate
+     * @param DateTime|null $taxDate
      * @param string|int|null $orderId
      * @param string|null $number
      * @param string|null $identificator
      * @param string|null $urlStatus
      * @param bool $storno
      * @param array $extraData
+     * @throws \DateMalformedStringException
      */
     public function __construct(
 
         private readonly Account  $account,
         private readonly Payment  $payment,
         private readonly DateTime $created,
-        private ?DateTime         $dueDate = null,
+        protected ?DateTime       $dueDate = null,
+        protected ?DateTime       $taxDate = null,
         protected string|int|null $orderId = null,
         protected string|null     $number = null,
         protected string|null     $identificator = null,
@@ -73,17 +77,8 @@ class Order
         $this->identificator = ($identificator ?? null);
         $this->urlStatus = ($urlStatus ?? null);
 
-        if(empty($dueDate)) {
-
-            $test = clone $this->created;
-
-            $this->dueDate = $test->modify(modifier: "+ $this->interval days");
-
-        } else {
-
-            $this->dueDate = $dueDate;
-        }
-
+        $this->dueDate = $dueDate ?? (clone $this->created)->modify("+ {$this->interval} days");
+        $this->taxDate = $taxDate ?? (clone $this->created)->modify("+ {$this->interval} days");
     }
 
     /**
@@ -186,6 +181,17 @@ class Order
     {
 
         return $this->dueDate;
+    }
+
+
+    /**
+     * Datum zdan. plnění
+     * @return DateTime
+     */
+    public function getTaxDate(): DateTime
+    {
+
+        return $this->taxDate;
     }
 
     /**
@@ -306,29 +312,27 @@ class Order
 
     /**
      * @param bool $useTax
+     * @param bool $displayZero
      * @return int[]
      */
-    public function getVatLines(bool $useTax = false): array
+    public function getVatLines(bool $useTax = false, bool $displayZero = true): array
     {
-
         if (!$useTax) {
-
             return [];
         }
 
-        // vychozi
+        // výchozí hodnoty
         $rates = [
             0 => 0,
-           12 => 0,
-           21 => 0
+            12 => 0,
+            21 => 0,
         ];
 
         foreach ($this->getItems() as $item) {
-
             $vat = $item->getVatRate();
             $tax = $item->getAmountTax();
 
-            if((float) $vat > 0) {
+            if ((float) $vat > 0) {
                 if (!isset($rates[$vat])) {
                     $rates[$vat] = 0;
                 }
@@ -337,10 +341,15 @@ class Order
             }
         }
 
+        if (!$displayZero) {
+            $rates = array_filter($rates, static fn($amount) => (float) $amount > 0);
+        }
+
         ksort($rates);
 
         return $rates;
     }
+
 
     /**
      * @return Item[]
