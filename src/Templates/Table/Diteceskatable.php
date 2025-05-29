@@ -180,19 +180,28 @@ final class Diteceskatable extends OutputTable
             });
         
         $iterator++;
-        
+
         $renderer->cell($this->bodyLeft, ($start + ($line * $iterator)), 1, null, Strings::lower($this->_getFromArray(index: "nomination_candidate_email")),
             function (Settings $settings) {
-                $settings->fontSize = $this->fontSizeNormal;
+                $settings->fontSize = $this->fontSizeText;
                 $settings->fontColor = $this->fontColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
             });
-        
+
+        $iterator++;
+
+        $renderer->cell($this->bodyLeft, ($start + ($line * $iterator)), 1, null, Strings::lower($this->_getFromArray(index: "nomination_candidate_mobile")),
+            function (Settings $settings) {
+                $settings->fontSize = $this->fontSizeText;
+                $settings->fontColor = $this->fontColor;
+                $settings->fontStyle = $settings::FONT_STYLE_NONE;
+            });
+
         $iterator++;
         
         $renderer->cell($this->bodyLeft, ($start + ($line * $iterator)), 1, null, Strings::lower($this->_getFromArray(index: "nomination_candidate_city")),
             function (Settings $settings) {
-                $settings->fontSize = $this->fontSizeNormal;
+                $settings->fontSize = $this->fontSizeText;
                 $settings->fontColor = $this->fontColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
             });
@@ -201,7 +210,7 @@ final class Diteceskatable extends OutputTable
         
         $renderer->cell($this->bodyLeft, ($start + ($line * $iterator)), 1, null, Strings::lower($this->_getFromArray(index: "nomination_candidate_birthday")),
             function (Settings $settings) {
-                $settings->fontSize = $this->fontSizeNormal;
+                $settings->fontSize = $this->fontSizeText;
                 $settings->fontColor = $this->fontColor;
                 $settings->fontStyle = $settings::FONT_STYLE_NONE;
             });
