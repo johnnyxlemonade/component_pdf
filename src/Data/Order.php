@@ -310,10 +310,11 @@ class Order
         return $this->messageLine;
     }
 
+
+
     /**
-     * @param bool $useTax
-     * @param bool $displayZero
-     * @return int[]
+     * Vrátí souhrn DPH sazeb a jejich částek z položek objednávky.
+     * @return array<string,float>
      */
     public function getVatLines(bool $useTax = false, bool $displayZero = true): array
     {
@@ -321,20 +322,15 @@ class Order
             return [];
         }
 
-        // výchozí hodnoty
-        $rates = [
-            0 => 0,
-            12 => 0,
-            21 => 0,
-        ];
+        $rates = [];
 
         foreach ($this->getItems() as $item) {
-            $vat = $item->getVatRate();
-            $tax = $item->getAmountTax();
+            $vat = (string)$item->getVatRate();  // DPH sazba (string kvůli desetinným hodnotám)
+            $tax = $item->getAmountTax();        // Částka daně pro danou položku
 
-            if ((float) $vat > 0) {
+            if ($item->getVatRate() > 0.0) {
                 if (!isset($rates[$vat])) {
-                    $rates[$vat] = 0;
+                    $rates[$vat] = 0.0;
                 }
 
                 $rates[$vat] += $tax;
@@ -342,14 +338,13 @@ class Order
         }
 
         if (!$displayZero) {
-            $rates = array_filter($rates, static fn($amount) => (float) $amount > 0);
+            $rates = array_filter($rates, static fn($amount) => (float)$amount > 0);
         }
 
-        ksort($rates);
+        uksort($rates, static fn($a, $b) => (float)$a <=> (float)$b);
 
         return $rates;
     }
-
 
     /**
      * @return Item[]
