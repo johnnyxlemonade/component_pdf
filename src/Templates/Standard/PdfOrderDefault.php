@@ -199,7 +199,7 @@ final class PdfOrderDefault extends OutputStandard
                 width: 1,
                 height: null,
                 text: $this->translator->translate(message: "orderIdentificator") . $this->order->getOrderIdentificator(),
-                link: Strings::upper($this->order->getOrderStatusUrl()),
+                link: $this->order->getOrderStatusUrl(),
                 setCallback: function (Settings $settings) {
                     $settings->fontSize = 8;
                     $settings->fontStyle = $settings::FONT_STYLE_BOLD;
