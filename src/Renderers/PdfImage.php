@@ -101,6 +101,7 @@ abstract class PdfImage
 
     /**
      * @param string|int $fileId
+     * @param string|null $fileCurrency
      * @param string|null $fileText
      * @param string $fileDesc
      * @return string
@@ -108,7 +109,8 @@ abstract class PdfImage
     protected function _generateImageFile(string|int $fileId, string $fileCurrency = null, string $fileText = null, string $fileDesc = ""): string
     {
 
-        $genFile = sprintf("%s_%s.png", $fileId, $fileCurrency ?? "no_currency");
+        $hash = substr(sha1((string) microtime(true)), 0, 6);
+        $genFile = sprintf("%s_%s_%s.png", $fileId, $fileCurrency ?? "no_currency", $hash);
 
         try {
 
