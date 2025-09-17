@@ -105,10 +105,10 @@ abstract class PdfImage
      * @param string $fileDesc
      * @return string
      */
-    protected function _generateImageFile(string|int $fileId, string $fileText = null, string $fileDesc = ""): string
+    protected function _generateImageFile(string|int $fileId, string $fileCurrency = null, string $fileText = null, string $fileDesc = ""): string
     {
 
-        $genFile = sprintf("%s.png", $fileId);
+        $genFile = sprintf("%s_%s.png", $fileId, $fileCurrency ?? "no_currency");
 
         try {
 

@@ -62,8 +62,8 @@ final class ImagePayment extends PdfImage
         }
 
         // generovani obrazku doFS
-        return $this->_generateImageFile(fileId: $this->order->getOrderIdentificator(),  fileText: implode(separator: "*", array: $this->json), fileDesc: "QR platba");
-        
+        return $this->_generateImageFile(fileId: $this->order->getOrderIdentificator(), fileCurrency: $this->payment->getCurrency(),  fileText: implode(separator: "*", array: $this->json), fileDesc: "QR platba");
+
     }
 
 }

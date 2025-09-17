@@ -34,7 +34,7 @@ final class ImageStatus extends PdfImage
     public function generateImage(bool $toString = false): string
     {
 
-        return $this->_generateImageFile(fileId: $this->statusId,  fileText: $this->statusUrl, fileDesc: "Stav online");
+        return $this->_generateImageFile(fileId: $this->statusId, fileText: $this->statusUrl, fileDesc: "Stav online");
 
     }
 
