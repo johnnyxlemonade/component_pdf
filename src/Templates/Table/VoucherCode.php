@@ -7,6 +7,7 @@ use Lemonade\Pdf\Data\{Schema, Table};
 use Lemonade\Pdf\Renderers\{Color, PDFRenderer, PdfRendererInterface, Settings};
 use Lemonade\Pdf\Templates\TableInterface;
 use Nette\Utils\Strings;
+use DateTimeImmutable;
 
 /**
  * @VoucherCode
@@ -14,8 +15,6 @@ use Nette\Utils\Strings;
  */
 class VoucherCode extends OutputTable
 {
-
-
     /**
      * @param PDFRenderer $renderer
      * @param Table $meta
@@ -25,7 +24,6 @@ class VoucherCode extends OutputTable
      */
     public function generateOutput(PDFRenderer $renderer, Table $meta, Table $data, Table $property = null): string
     {
-        
         $this->renderer = $renderer;
         $this->data     = $data;
         $this->property = $property;
@@ -43,7 +41,7 @@ class VoucherCode extends OutputTable
         $this->renderer->registerDefaultFont();
 
         $this->buildImage();
-        
+
         return $this->renderer->output();
     }
 
@@ -52,10 +50,14 @@ class VoucherCode extends OutputTable
      */
     protected function buildImage(): void
     {
-
-
         $renderer = $this->renderer;
-        $renderer->addBackground(background: $this->data->getConfig(index: "image"));
+
+        // pozadí
+        $renderer->addBackground(
+            background: $this->data->getConfig(index: "image")
+        );
+
+        // kód kupónu
         $renderer->cell(
             x: $this->property->getConfig(index: "positionX"),
             y: $this->property->getConfig(index: "positionY"),
@@ -63,13 +65,48 @@ class VoucherCode extends OutputTable
             height: $this->property->getConfig(index: "codeHeight"),
             text: $this->data->getConfig(index: "code"),
             setCallback: function (Settings $settings) {
-                $settings->align = $settings::ALIGN_CENTER;
+                $settings->align      = $settings::ALIGN_CENTER;
                 $settings->fontFamily = "sans";
-                $settings->fontSize = $this->property->getConfig(index: "fontSize");
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->fontColor = $this->schema->getBlackColor();
-           }
+                $settings->fontSize   = $this->property->getConfig(index: "fontSize");
+                $settings->fontStyle  = $settings::FONT_STYLE_BOLD;
+                $settings->fontColor  = $this->schema->getBlackColor();
+            }
         );
-    }
 
+        // platnost kuponu (validFrom / validTo)
+        $validFrom = $this->data->getConfig("validFrom");
+        $validTo   = $this->data->getConfig("validTo");
+
+        if ($validFrom instanceof DateTimeImmutable || $validTo instanceof DateTimeImmutable) {
+            $fromStr = $validFrom?->format("d.m.Y");
+            $toStr   = $validTo?->format("d.m.Y");
+
+            $validityText = match (true) {
+                $fromStr && $toStr => sprintf("Platný od %s do %s", $fromStr, $toStr),
+                $fromStr           => sprintf("Platný od %s", $fromStr),
+                $toStr             => sprintf("Platný do %s", $toStr),
+                default            => "Bez omezení platnosti",
+            };
+
+            // vykresluj jen pokud mám nastavené souřadnice
+            $validityX = $this->property->getConfig("validityX");
+            $validityY = $this->property->getConfig("validityY");
+
+            if ($validityX !== null && $validityY !== null) {
+                $renderer->cell(
+                    x: (int) $validityX,
+                    y: (int) $validityY,
+                    width: $renderer->textWidth($validityText),
+                    height: 10,
+                    text: $validityText,
+                    setCallback: function (Settings $settings) {
+                        $settings->align      = $settings::ALIGN_CENTER;
+                        $settings->fontFamily = "sans";
+                        $settings->fontSize   = (int) ($this->property->getConfig("validitySize") ?: 8);
+                        $settings->fontColor  = $this->schema->getWhiteColor();
+                    }
+                );
+            }
+        }
+    }
 }
