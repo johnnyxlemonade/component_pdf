@@ -3,130 +3,113 @@
 namespace Lemonade\Pdf\Renderers;
 
 /**
- * Color
- * \Lemonade\Pdf\Renderers\Color
+ * Class Color
+ *
+ * Immutable RGB color representation.
+ * Provides helpers for common palette colors and brightness adjustment.
+ *
+ * @package     Lemonade Framework
+ * @subpackage  Pdf\Renderers
+ * @category    Pdf
+ * @link        https://lemonadeframework.cz/
+ * @since       1.0
  */
 class Color
 {
+    private static ?self $BLACK     = null;
+    private static ?self $GRAY      = null;
+    private static ?self $LIGHTGRAY = null;
+    private static ?self $CORE      = null;
+    private static ?self $WHITE     = null;
 
-    /**
-     * @param int $red
-     * @param int $green
-     * @param int $blue
-     */
-    public function __construct(protected readonly int $red, protected readonly int $green, protected readonly int $blue)
-    {
-    }
+    public function __construct(
+        protected readonly int $red,
+        protected readonly int $green,
+        protected readonly int $blue
+    ) {}
 
-    /**
-     * @return Color
-     */
+    // --- Predefined colors ---------------------------------------------------
+
     public static function black(): Color
     {
-        return new Color(0, 0, 0);
+        return self::$BLACK ??= new self(0, 0, 0);
     }
 
-    /**
-     * @return Color
-     */
     public static function gray(): Color
     {
-        return new Color(105, 105, 105);
+        return self::$GRAY ??= new self(105, 105, 105);
     }
 
-    /**
-     * @return Color
-     */
     public static function lightgray(): Color
     {
-        return new Color(241, 241, 241);
+        return self::$LIGHTGRAY ??= new self(241, 241, 241);
     }
 
-    /**
-     * @return Color
-     */
     public static function core(): Color
     {
-        return new Color(235, 43, 46);
+        return self::$CORE ??= new self(235, 43, 46);
     }
 
-    /**
-     * @return Color
-     */
     public static function white(): Color
     {
-        return new Color(255, 255, 255);
+        return self::$WHITE ??= new self(255, 255, 255);
     }
 
-    /**
-     * @return int
-     */
+    // --- Accessors -----------------------------------------------------------
+
     public function getRed(): int
     {
         return $this->red;
     }
 
-    /**
-     * @return int
-     */
     public function getGreen(): int
     {
-
         return $this->green;
     }
 
-    /**
-     * @return int
-     */
     public function getBlue(): int
     {
         return $this->blue;
     }
 
     /**
-     * @param int $percentage
-     * @return Color
+     * Returns hexadecimal string representation of the color.
      */
-    public function lighten(int $percentage): Color
+    public function toHex(bool $withHash = true): string
     {
-        $percentage = max(0, min(100, $percentage));
-
-        return $this->lightenDarken(-$percentage);
+        $hex = sprintf('%02X%02X%02X', $this->red, $this->green, $this->blue);
+        return $withHash ? "#{$hex}" : $hex;
     }
 
-    /**
-     * @param int $percentage
-     * @return Color
-     */
-    protected function lightenDarken(int $percentage): Color
+    // --- Color transformations ----------------------------------------------
+    public function lighten(int $percentage): Color
     {
-        $percentage = round($percentage / 100, 2);
+        $percentage = max(0, min(100, $percentage)) / 100;
 
-        return new Color(
-            $this->adjustColor((int)($this->red - ($this->red * $percentage))),
-            $this->adjustColor((int)($this->green - ($this->green * $percentage))),
-            $this->adjustColor((int)($this->blue - ($this->blue * $percentage)))
+        return new self(
+            $this->clamp((int)($this->red + (255 - $this->red) * $percentage)),
+            $this->clamp((int)($this->green + (255 - $this->green) * $percentage)),
+            $this->clamp((int)($this->blue + (255 - $this->blue) * $percentage))
         );
     }
 
-    /**
-     * @param int $dimension
-     * @return int
-     */
-    protected function adjustColor(int $dimension): int
-    {
-        return max(0, min(255, $dimension));
-    }
-
-    /**
-     * @param int $percentage
-     * @return Color
-     */
     public function darken(int $percentage): Color
     {
-        $percentage = max(0, min(100, $percentage));
+        $percentage = max(0, min(100, $percentage)) / 100;
 
-        return $this->lightenDarken($percentage);
+        return new self(
+            $this->clamp((int)($this->red * (1 - $percentage))),
+            $this->clamp((int)($this->green * (1 - $percentage))),
+            $this->clamp((int)($this->blue * (1 - $percentage)))
+        );
     }
+
+    // --- Internal ------------------------------------------------------------
+
+    protected function clamp(int $value): int
+    {
+        return max(0, min(255, $value));
+    }
+
 
 }
