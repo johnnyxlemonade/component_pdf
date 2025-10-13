@@ -17,7 +17,7 @@ use function file_exists;
  * ImageQrInterface
  * \Lemonade\Pdf\ImageQrInterface
  */
-abstract class QRImage
+abstract class QRImageAbstract
 {
 
     /**
