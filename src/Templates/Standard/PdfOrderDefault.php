@@ -78,14 +78,14 @@ final class PdfOrderDefault extends OutputStandard
         Customer $delivery = null
 
     ): string {
-        
+
         $this->renderer = $renderer;
         $this->customerBilling = $billing;
         $this->customerDelivery = $delivery;
         $this->order = $order;
         $this->company = $company;
         $this->calculator = $calculator;
-               
+
         $this->renderer->createNew();
         $this->renderer->setDocumentMeta(
             data: [
@@ -97,41 +97,41 @@ final class PdfOrderDefault extends OutputStandard
 
         // fonty
         $this->renderer->registerDefaultFont();
-        
+
         $paginator = new Paginator(items: $this->order->getItems(), itemsPerPage:  $this->itemsPerPage);
-       
+
         while ($paginator->nextPage()) {
-            
+
             // prvniStrana
-            if (!$paginator->isFirstPage()) {         
-                
-                $this->renderer->addPage();                                           
-            } 
-            
+            if (!$paginator->isFirstPage()) {
+
+                $this->renderer->addPage();
+            }
+
             $this->buildHeader();
             $this->buildSupplierBox();
             $this->buildSubscriberBox();
             $this->buildPaymentBox();
             $this->buildVerticalLine();
-            
-            
+
+
             $offset = 380;
             $this->buildBody(offsetHead: $offset, offsetBody:  30);
             $offset = $this->buildItems(offset: $offset + 35, items:  $paginator->getItems());
-                    
+
             // posledniStrana
             if ($paginator->isLastPage()) {
-                
+
                 $this->buildTotal(offset: $offset + 20);
                 $this->buildNotice();
                 $this->buildMessage();
             }
-                        
+
             // paticka
             $this->buildFooter(paginator: $paginator);
-            
+
         }
-        
+
         return $this->renderer->output();
     }
 
@@ -140,7 +140,7 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildHeader(): void
     {
-        
+
         $renderer = $this->renderer;
 
         // bily polygon
@@ -189,10 +189,10 @@ final class PdfOrderDefault extends OutputStandard
                 $settings->fontColor = $this->whiteColor;
             }
         );
-        
+
         // odkaz na stav objednavky
         if($this->order->getOrderStatusUrl() !== null) {
-            
+
             $renderer->link(
                 x: 420,
                 y: 70,
@@ -206,7 +206,7 @@ final class PdfOrderDefault extends OutputStandard
                     $settings->fontColor = $this->whiteColor;
                 }
             );
-            
+
         } else {
 
             $renderer->cell(
@@ -223,7 +223,7 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         }
-        
+
     }
 
     /**
@@ -231,7 +231,7 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildSupplierBox(): void
     {
-        
+
         $renderer = $this->renderer;
 
         // dodavatelPopis
@@ -290,10 +290,10 @@ final class PdfOrderDefault extends OutputStandard
             }
         );
 
-        
+
         $positionY  = 210;
         $multiplier = 0;
-        
+
         // dodavatelICO
         if (!empty($this->company->getTin())) {
 
@@ -327,10 +327,10 @@ final class PdfOrderDefault extends OutputStandard
                 }
             );
 
-            
+
             $multiplier++;
         }
-        
+
         // dodavatelDIC
         if ($this->company->hasTax()) {
 
@@ -363,7 +363,7 @@ final class PdfOrderDefault extends OutputStandard
                     $settings->align = $settings::ALIGN_RIGHT;
                 }
             );
-            
+
         } else {
 
             // dodavatelDICNazev
@@ -403,7 +403,7 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildSubscriberBox(): void
     {
-        
+
         $renderer = $this->renderer;
 
         // odberatelNazev
@@ -462,10 +462,10 @@ final class PdfOrderDefault extends OutputStandard
             }
         );
 
-        
+
         $positionY  = 210;
         $multiplier = 0;
-        
+
         // odberatelICO
         if (!empty($ico = $this->customerBilling->getTin())) {
 
@@ -498,10 +498,10 @@ final class PdfOrderDefault extends OutputStandard
                 }
             );
 
-            
+
             $multiplier++;
         }
-        
+
         // odberatelDIC
         if ($this->customerBilling->hasTax()) {
 
@@ -535,7 +535,7 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         }
-        
+
     }
 
     /**
@@ -543,7 +543,7 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildPaymentBox(): void
     {
-        
+
         $renderer = $this->renderer;
         $half = ($renderer->width()) / 2;
 
@@ -730,7 +730,7 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         }
-        
+
         // vpravo - datum objednavky
         if ($this->order->getAccount()->getBank()) {
 
@@ -763,7 +763,7 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         }
-        
+
         // vpravo - datum objednavky
         if ($this->order->getExternalDealerId()) {
 
@@ -796,10 +796,10 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         }
-        
+
         // vpravo - externiId / VS symbiol
         if ($this->order->getExternalId()) {
-            
+
             // variabilniSymbol (nazev)
             $renderer->cell(
                 x: 420,
@@ -829,7 +829,7 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         } else {
-            
+
             // variabilniSymbol (nazev)
             $renderer->cell(
                 x: 420,
@@ -845,7 +845,7 @@ final class PdfOrderDefault extends OutputStandard
                 }
             );
 
-            
+
             // interCisloObjednavky (hodnota)
             $renderer->cell(
                 x: 760,
@@ -860,8 +860,8 @@ final class PdfOrderDefault extends OutputStandard
             );
 
         }
-        
-        
+
+
     }
 
     /**
@@ -1281,153 +1281,167 @@ final class PdfOrderDefault extends OutputStandard
      */
     protected function buildTotal(int $offset): void
     {
-
         $renderer = $this->renderer;
         $half = ($renderer->width() - 553) / 2;
 
-        // qrkod - stav
-        if($this->schema->hasUrlPath()) {
-
-            $renderer->addImage(logo: $this->schema->getUrlPath(), x: $half - 85, y: $offset);
+        // QR
+        if ($this->schema->hasUrlPath()) {
+            $renderer->addImage(
+                logo: $this->schema->getUrlPath(),
+                x: $half - 85,
+                y: $offset
+            );
         }
 
-        // dphSouhrny
-        if($this->company->hasTax()) {
+        // ===== DPH SOUHRN =====
+        $vatSum = 0.0;
 
-            //  dph sazby
-            $vatLines = $this->order->getVatLines(useTax: $this->company->hasTax());
+        if ($this->company->hasTax()) {
+            $vatLines = $this->order->getVatLines(true);
 
-            //  dph sazby
-            if(count($vatLines) > 0) {
-
-                $dphBase = 0;
-
-                foreach($vatLines as $key => $val) {
-                    $dphBase += $val;
-
-                    // dphSazba
-                    $renderer->cell(
-                        x: 420,
-                        y: $offset,
-                        width: $half,
-                        height: 15,
-                        text: sprintf("%s %s %s", $this->translator->translate(message: "vatRate"), $key, "%"),
-                        setCallback: function (Settings $settings) {
-                            $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                            $settings->fontColor = $this->fontColor;
-                            $settings->align = $settings::ALIGN_LEFT;
-                        }
-                    );
-
-                    // dphHodnota
-                    $renderer->cell(
-                        x: 640,
-                        y: $offset,
-                        width: $half,
-                        height: 15,
-                        text: $this->formatter->formatMoney(number: $val, formatDecimal: true),
-                        setCallback: function (Settings $settings) {
-                            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                            $settings->fontColor = $this->fontColor;
-                            $settings->align = $settings::ALIGN_RIGHT;
-                        }
-                    );
-
-                    $offset += 15;
+            foreach ($vatLines as $rate => $vatValue) {
+                if ($vatValue <= 0) {
+                    continue;
                 }
 
-                // bez DPH celkem
-                if((float) $dphBase > 0) {
+                $vatSum += $vatValue;
 
-                    $offset += 5;
-
-                    // dphSazba
-                    $renderer->cell(
-                        x: 420,
-                        y: $offset,
-                        width: $half,
-                        height: 15,
-                        text: $this->translator->translate(message: "summaryTaxBase"),
-                        setCallback: function (Settings $settings) {
-                            $settings->fontColor = $this->fontColor;
-                            $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                            $settings->align = $settings::ALIGN_LEFT;
-                        }
-                    );
-
-                    // dphHodnota
-                    $renderer->cell(
-                        x: 640,
-                        y: $offset,
-                        width: $half,
-                        height: 15,
-                        text: $this->formatter->formatMoney(number: ($this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax()) - $dphBase), isTotal: false),
-                        setCallback: function (Settings $settings) {
-                            $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                            $settings->fontColor = $this->fontColor;
-                            $settings->align = $settings::ALIGN_RIGHT;
-                        }
-                    );
-
-
-                    $offset += 15;
-                }
-
-                if((float) $dphBase > 0) {
-
-                    $totalGoods = $this->order->getTotalPrice(calculator: $this->calculator, useTax: $this->company->hasTax());
-
-                    if($this->order->getPayment()->getCurrency() === "EUR") {
-
-                        $articleTotal = round(num: $totalGoods, precision: 1);
-
-                    } else {
-
-                        $articleTotal = round(num: $totalGoods);
+                // DPH sazba X %
+                $renderer->cell(
+                    x: 420,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: sprintf("%s %s %s", $this->translator->translate(message: "vatRate"), $rate, "%"),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontFamily = "sans";
+                        $settings->fontStyle  = $settings::FONT_STYLE_NONE;
+                        $settings->fontColor  = $this->fontColor;
+                        $settings->align      = $settings::ALIGN_LEFT;
                     }
+                );
 
-                    $articleHaller = round(num: ($articleTotal - $totalGoods), precision: 3);
-
-                    if($articleHaller !== 0.0) {
-
-                        // dphSazba
-                        $renderer->cell(
-                            x: 420,
-                            y: $offset,
-                            width: $half,
-
-                            height: 15,
-                            text: $this->translator->translate(message: "summaryRounding"),
-                            setCallback: function (Settings $settings) {
-                                $settings->fontColor = $this->fontColor;
-                                $settings->fontStyle = $settings::FONT_STYLE_NONE;
-                                $settings->align = $settings::ALIGN_LEFT;
-                            }
-                        );
-
-                        // dphHodnota
-                        $renderer->cell(
-                            x: 640,
-                            y: $offset,
-                            width: $half,
-                            height: 15,
-                            text: $this->formatter->formatMoney(number: $articleHaller, isTotal: false),
-                            setCallback: function (Settings $settings) {
-                                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                                $settings->fontColor = $this->fontColor;
-                                $settings->align = $settings::ALIGN_RIGHT;
-                            }
-                        );
-
-                        $offset += 15;
+                // hodnota DPH
+                $renderer->cell(
+                    x: 640,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: $this->formatter->formatMoney(number: (float) $vatValue, formatDecimal: true),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontFamily = "sans";
+                        $settings->fontStyle  = $settings::FONT_STYLE_BOLD;
+                        $settings->fontColor  = $this->fontColor;
+                        $settings->align      = $settings::ALIGN_RIGHT;
                     }
-                }
+                );
 
-                $offset += 10;
+                $offset += 15;
             }
+
+            // ===== ZÁKLAD DANĚ (bez kupónů) =====
+            // počítáme základ z GOODS (ne sale), aby kupony (0% / sale) neotáčely základ do mínusu
+            $goodsTotalWithTax = 0.0;
+
+            foreach ($this->order->getItems() as $item) {
+                if (!$item->isSale()) {
+                    $goodsTotalWithTax += (float) $item->getTotalPrice(calculator: $this->calculator, useTax: true);
+                }
+            }
+
+            $taxBase = $goodsTotalWithTax - $vatSum;
+
+            $offset += 5;
+
+            // popisek: Základ daně
+            $renderer->cell(
+                x: 420,
+                y: $offset,
+                width: $half,
+                height: 15,
+                text: $this->translator->translate(message: "summaryTaxBase"),
+                setCallback: function (Settings $settings) {
+                    $settings->fontFamily = "sans";
+                    $settings->fontStyle  = $settings::FONT_STYLE_NONE;
+                    $settings->fontColor  = $this->fontColor;
+                    $settings->align      = $settings::ALIGN_LEFT;
+                }
+            );
+
+            // hodnota: základ daně
+            $renderer->cell(
+                x: 640,
+                y: $offset,
+                width: $half,
+                height: 15,
+                text: $this->formatter->formatMoney(number: $taxBase, isTotal: false),
+                setCallback: function (Settings $settings) {
+                    $settings->fontFamily = "sans";
+                    $settings->fontStyle  = $settings::FONT_STYLE_BOLD;
+                    $settings->fontColor  = $this->fontColor;
+                    $settings->align      = $settings::ALIGN_RIGHT;
+                }
+            );
+
+            $offset += 15;
+
+            // ===== ZAOKROUHLENÍ (POUZE ZBOŽÍ, BEZ KUPÓNŮ) =====
+            $totalGoods = $goodsTotalWithTax;
+
+
+            // ===== ZAOKROUHLENÍ (POUZE ZBOŽÍ, BEZ KUPÓNŮ) =====
+            $totalGoods = $goodsTotalWithTax;
+
+            if ($this->order->getPayment()->getCurrency() === "EUR") {
+                $articleTotal = round(num: $totalGoods, precision: 1);
+            } else {
+                $articleTotal = round(num: $totalGoods);
+            }
+
+            $articleHaller = round(num: ($articleTotal - $totalGoods), precision: 3);
+
+            if ($articleHaller !== 0.0) {
+
+                // popisek: Zaokrouhlení
+                $renderer->cell(
+                    x: 420,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: $this->translator->translate(message: "summaryRounding"),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontFamily = "sans";
+                        $settings->fontStyle  = $settings::FONT_STYLE_NONE;
+                        $settings->fontColor  = $this->fontColor;
+                        $settings->align      = $settings::ALIGN_LEFT;
+                    }
+                );
+
+                // hodnota: rozdíl po zaokrouhlení
+                $renderer->cell(
+                    x: 640,
+                    y: $offset,
+                    width: $half,
+                    height: 15,
+                    text: $this->formatter->formatMoney(
+                        number: $articleHaller,
+                        isTotal: false
+                    ),
+                    setCallback: function (Settings $settings) {
+                        $settings->fontFamily = "sans";
+                        $settings->fontStyle  = $settings::FONT_STYLE_BOLD;
+                        $settings->fontColor  = $this->fontColor;
+                        $settings->align      = $settings::ALIGN_RIGHT;
+                    }
+                );
+
+                $offset += 15;
+            }
+
+            $offset += 10;
         }
 
-        // primarniBarva
+        // ===== CELKEM =====
         $renderer->rect(
             x: 420,
             y: $offset,
@@ -1438,6 +1452,7 @@ final class PdfOrderDefault extends OutputStandard
             }
         );
 
+
         // celkovaCena - popisek
         $renderer->cell(
             x: 425,
@@ -1446,16 +1461,25 @@ final class PdfOrderDefault extends OutputStandard
             height: 24,
             text: $this->translator->translate(message: "totalPrice"),
             setCallback: function (Settings $settings) {
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->align = $settings::ALIGN_LEFT;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontSize = 8;
+                $settings->fontFamily = "sans";
+                $settings->fontStyle  = $settings::FONT_STYLE_BOLD;
+                $settings->align      = $settings::ALIGN_LEFT;
+                $settings->fontColor  = $this->whiteColor;
+                $settings->fontSize   = 8;
             }
         );
 
-        $totalPrice = $this->order->getTotalPrice($this->calculator, $this->company->hasTax());
-        $salesPrice = $this->order->getSalesPrice($this->calculator);
-        $finalPrice = ($totalPrice + $salesPrice);
+        $totalPrice = (float) $this->order->getTotalPrice(calculator: $this->calculator, useTax: true);
+        $salesPrice = (float) $this->order->getSalesPrice(calculator: $this->calculator); // záporné položky (kupony)
+        $finalPrice = $totalPrice + $salesPrice;
+
+        // clamp na 0 (aby nevznikla záporná "celková částka")
+        $finalPrice = max(0.0, round($finalPrice, 2));
+
+        // normalizace -0 → 0
+        if (abs($finalPrice) < 0.005) {
+            $finalPrice = 0.0;
+        }
 
         // celkovaCena - hodnota
         $renderer->cell(
@@ -1463,21 +1487,29 @@ final class PdfOrderDefault extends OutputStandard
             y: $offset,
             width: $half + 40,
             height: 24,
-            text: $this->formatter->formatMoney(number: $finalPrice, isTotal: true),
+            text: $this->formatter->formatMoney(
+                number: $finalPrice,
+                isStorno: false,
+                isTotal: true
+            ),
             setCallback: function (Settings $settings) {
-                $settings->fontStyle = $settings::FONT_STYLE_BOLD;
-                $settings->fontColor = $this->whiteColor;
-                $settings->fontSize = 9;
-                $settings->align = $settings::ALIGN_RIGHT;
+                $settings->fontFamily = "sans";
+                $settings->fontStyle  = $settings::FONT_STYLE_BOLD;
+                $settings->fontColor  = $this->whiteColor;
+                $settings->fontSize   = 9;
+                $settings->align      = $settings::ALIGN_RIGHT;
             }
         );
 
-        // stamp
-        if($this->schema->hasStampPath()) {
-
-            $renderer->addImage(logo: $this->schema->getStampPath(), x: 500 + $half, y: $offset + 42, width: 148);
+        // stamp (pokud ho chceš i tady)
+        if ($this->schema->hasStampPath()) {
+            $renderer->addImage(
+                logo: $this->schema->getStampPath(),
+                x: 500 + $half,
+                y: $offset + 15,
+                width: 148
+            );
         }
-
     }
 
 

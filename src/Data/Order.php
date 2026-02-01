@@ -325,6 +325,12 @@ class Order
         $rates = [];
 
         foreach ($this->getItems() as $item) {
+
+            if ($item->isSale()) {
+                continue; // kupóny ignorujeme
+            }
+
+
             $vat = (string)$item->getVatRate();  // DPH sazba (string kvůli desetinným hodnotám)
             $tax = $item->getAmountTax();        // Částka daně pro danou položku
 
@@ -374,6 +380,38 @@ class Order
         return round(num: $total, precision: 2);
     }
 
+    public function getTaxableBase(FloatCalculator $calculator): float
+    {
+        $base = 0.0;
+
+        foreach ($this->getItems() as $item) {
+            if ($item->isSale()) {
+                continue;
+            }
+
+            // cena bez DPH
+            $base = $calculator->add(
+                $base,
+                $item->getTotalPrice($calculator, false)
+            );
+        }
+
+        return round($base, 2);
+    }
+
+    public function getDiscountTotal(FloatCalculator $calculator): float
+    {
+        $discount = 0.0;
+
+        foreach ($this->getItems() as $item) {
+            if ($item->isSale()) {
+                $discount = $calculator->add($discount, $item->getPrice());
+            }
+        }
+
+        return round($discount, 2); // záporné číslo
+    }
+
     /**
      * @param FloatCalculator $calculator
      * @param bool $useTax
@@ -381,20 +419,26 @@ class Order
      */
     public function getTotalPrice(FloatCalculator $calculator, bool $useTax = false): float
     {
-
-        if ($this->totalPrice !== null) {
-
-            return (float) $this->totalPrice;
-        }
-
-        $total = 0;
+        $total = 0.0;
+        $couponTotal = 0.0;
 
         foreach ($this->getItems() as $item) {
 
-            $total = $calculator->add($total, $item->getTotalPrice($calculator, $useTax));
+            if ($item->isSale()) {
+                $couponTotal = $calculator->add($couponTotal, abs($item->getPrice()));
+                continue;
+            }
+
+            $total = $calculator->add(
+                $total,
+                $item->getTotalPrice($calculator, $useTax)
+            );
         }
 
-        return round(num: $total, precision: 2);
+        // odečti kupóny až z celku
+        $total = $calculator->sub($total, $couponTotal);
+
+        return max(0, round($total, 2));
     }
 
     /**
